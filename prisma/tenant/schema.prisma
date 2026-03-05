@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/tenant-client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Call {
+  call_id     String    @id @db.VarChar(255)
+  date_start  DateTime?
+  date_end    DateTime?
+  user_id     String?   @db.VarChar(45)
+  user_name   String?   @db.VarChar(45)
+  direction   String?   @db.VarChar(20)
+  duration    Int?
+  from_number String?   @db.VarChar(25)
+  to_number   String?   @db.VarChar(25)
+  is_answered Boolean?
+  last_state  String?   @db.VarChar(25)
+  tags        Json?
+  raw_data    Json?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  empower_stats EmpowerStats[]
+
+  @@map("call")
+}
+
+model EmpowerStats {
+  empower_id    Int       @id @default(autoincrement())
+  call_id       String?   @db.VarChar(45)
+  score_global  Float?
+  sentiment     String?   @db.VarChar(45)
+  moments       Json?
+  transcription String?   @db.Text
+  raw_data      Json?
+  created_at    DateTime?
+
+  call Call? @relation(fields: [call_id], references: [call_id])
+
+  @@map("empower_stats")
+}

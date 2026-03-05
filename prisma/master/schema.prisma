@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/master-client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum StatusType {
+  success
+  failed
+}
+
+enum FileTypeEnum {
+  csv_stats
+  csv_empower
+}
+
+enum ExportTypeEnum {
+  csv_stats
+  csv_empower
+}
+
+model Client {
+  id                 Int      @id @default(autoincrement())
+  client_name        String   @db.VarChar(45)
+  ftp_host           String?  @db.VarChar(45)
+  ftp_user           String?  @db.VarChar(45)
+  ftp_pass_encrypted String?  @db.Text
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  tenants ClientTenant[]
+  exports Export[]
+  domains Domain[]
+
+  @@map("clients")
+}
+
+model ClientTenant {
+  id         Int      @id @default(autoincrement())
+  client_id  Int
+  db_url     String   @db.VarChar(255)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  client Client @relation(fields: [client_id], references: [id])
+
+  @@index([client_id])
+  @@map("client_tenant")
+}
+
+// Table domains — lie un domaine HTTP à un tenant
+// Exemple : acme.localhost:3000 → client_id 1
+model Domain {
+  id         Int      @id @default(autoincrement())
+  client_id  Int
+  domain     String   @unique @db.VarChar(255)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  client Client @relation(fields: [client_id], references: [id])
+
+  @@index([client_id])
+  @@index([domain])
+  @@map("domains")
+}
+
+model HistoriqueLecture {
+  id            Int           @id @default(autoincrement())
+  file_path     String        @db.VarChar(45)
+  status        StatusType    @default(failed)
+  error_message String?       @db.Text
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+  file_type     FileTypeEnum?
+
+  @@map("historique_lecture")
+}
+
+model Export {
+  id            Int            @id @default(autoincrement())
+  export_type   ExportTypeEnum
+  file_path     String         @db.VarChar(255)
+  status        StatusType     @default(failed)
+  error_message String?        @db.Text
+  created_at    DateTime?      @default(now())
+  updated_at    DateTime?      @updatedAt
+  client_id     Int
+
+  client Client @relation(fields: [client_id], references: [id])
+
+  @@index([client_id])
+  @@map("exports")
+}
