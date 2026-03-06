@@ -1,10 +1,43 @@
-import { Controller, Get, Param, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Req,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CallService } from './call.service';
+import type { TenantImportResult } from './call.service';
 import type { TenantRequest } from '../tenant/tenant.middleware';
 
 @Controller('calls')
 export class CallController {
   constructor(private readonly callService: CallService) {}
+
+  // ─── POST /calls/process ─────────────────────────────────────────────────
+  // PROCESS COMPLET :
+  //   1. Lire le CSV
+  //   2. Créer le tenant depuis IVRName (si inexistant)
+  //   3. Insérer les appels dans la DB du tenant
+  // Form-data: file = calls.csv
+  @Post('process')
+  @UseInterceptors(FileInterceptor('file'))
+  processCalls(@UploadedFile() file: Express.Multer.File): Promise<{
+    tenants_created: number;
+    tenants_existing: number;
+    total_inserted: number;
+    total_skipped: number;
+    total_errors: number;
+    results: TenantImportResult[];
+  }> {
+    if (!file) {
+      throw new BadRequestException('Fichier manquant (champ: file)');
+    }
+    return this.callService.processCallsCsv(file.buffer);
+  }
 
   // ─── GET mobalpa.localhost:3000/calls/tenant-info ────────────────────────
   // Afficher le nom du tenant et sa base de données

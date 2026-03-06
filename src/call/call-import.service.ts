@@ -1,9 +1,8 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { parse } from 'csv-parse/sync';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
-import { MasterPrismaService } from '../prisma/master-prisma.service';
 import { TenantService } from '../tenant/tenant.service';
-import type { TenantRequest } from '../tenant/tenant.middleware';
+import { MasterPrismaService } from '../prisma/master-prisma.service';
 
 interface CallRow {
   CallID: string;
@@ -20,7 +19,7 @@ interface CallRow {
   TotalDuration: string;
 }
 
-export interface TenantImportResult {
+interface TenantImportResult {
   ivr_name: string;
   tenant_name: string;
   db_name: string;
@@ -32,86 +31,22 @@ export interface TenantImportResult {
 }
 
 @Injectable()
-export class CallService {
-  private readonly logger = new Logger(CallService.name);
+export class CallImportService {
+  private readonly logger = new Logger(CallImportService.name);
 
   constructor(
-    private readonly tenantPrisma: TenantPrismaService,
     private readonly masterPrisma: MasterPrismaService,
     private readonly tenantService: TenantService,
+    private readonly tenantPrisma: TenantPrismaService,
   ) {}
 
-  // ─── Récupérer le client Prisma du tenant courant ────────────────────────
-  private getClient(req: TenantRequest) {
-    if (!req.tenantDbUrl) {
-      throw new BadRequestException(
-        'Tenant non résolu. Vérifier le domaine utilisé.',
-      );
-    }
-    return this.tenantPrisma.getClient(req.tenantDbUrl);
-  }
-
-  // ─── Infos du tenant + DB ────────────────────────────────────────────────
-  async getTenantInfo(req: TenantRequest) {
-    if (!req.tenantDbUrl) {
-      throw new BadRequestException(
-        'Tenant non résolu. Vérifier le domaine utilisé.',
-      );
-    }
-    const prisma = this.getClient(req);
-    const totalCalls = await prisma.call.count();
-    return {
-      tenant_name: req.tenantDomain,
-      db_name: req.tenantDbUrl.split('/').pop(),
-      db_url: req.tenantDbUrl,
-      total_calls: totalCalls,
-      status: 'active',
-    };
-  }
-
-  // ─── Statistiques des appels ─────────────────────────────────────────────
-  async getStats(req: TenantRequest) {
-    const prisma = this.getClient(req);
-    const [total, answered, missed] = await Promise.all([
-      prisma.call.count(),
-      prisma.call.count({ where: { is_answered: true } }),
-      prisma.call.count({ where: { is_answered: false } }),
-    ]);
-    return {
-      tenant: req.tenantDomain,
-      db_name: req.tenantDbUrl?.split('/').pop(),
-      total,
-      answered,
-      missed,
-      answer_rate:
-        total > 0 ? ((answered / total) * 100).toFixed(2) + '%' : '0%',
-    };
-  }
-
-  // ─── Liste tous les appels ───────────────────────────────────────────────
-  async findAll(req: TenantRequest) {
-    const prisma = this.getClient(req);
-    return prisma.call.findMany({
-      orderBy: { date_start: 'desc' },
-      take: 100,
-    });
-  }
-
-  // ─── Trouver un appel par ID ─────────────────────────────────────────────
-  async findOne(req: TenantRequest, callId: string) {
-    const prisma = this.getClient(req);
-    return prisma.call.findUnique({
-      where: { call_id: callId },
-      include: { empower_stats: true },
-    });
-  }
-
   // ─────────────────────────────────────────────────────────────────────────
-  // PROCESS COMPLET CSV
+  // PROCESS PRINCIPAL
   // 1. Lire le CSV
-  // 2. Grouper par IVRName
-  // 3. Pour chaque IVRName : créer le tenant si inexistant
-  // 4. Insérer les appels dans la DB du tenant
+  // 2. Grouper les lignes par IVRName
+  // 3. Pour chaque IVRName unique :
+  //    a. Créer le tenant s'il n'existe pas encore
+  //    b. Insérer les appels dans la DB du tenant
   // ─────────────────────────────────────────────────────────────────────────
   async processCallsCsv(buffer: Buffer): Promise<{
     tenants_created: number;
@@ -121,7 +56,7 @@ export class CallService {
     total_errors: number;
     results: TenantImportResult[];
   }> {
-    // ÉTAPE 1 — Parser le CSV
+    // ── ÉTAPE 1 : Parser le CSV ─────────────────────────────────────────────
     const rows = parse(buffer, {
       columns: true,
       skip_empty_lines: true,
@@ -130,7 +65,7 @@ export class CallService {
 
     this.logger.log(`📄 CSV lu : ${rows.length} lignes`);
 
-    // ÉTAPE 2 — Grouper par IVRName
+    // ── ÉTAPE 2 : Grouper par IVRName ───────────────────────────────────────
     const grouped = this.groupByIVRName(rows);
     const uniqueIVRNames = Object.keys(grouped);
 
@@ -145,7 +80,7 @@ export class CallService {
     let total_skipped = 0;
     let total_errors = 0;
 
-    // ÉTAPE 3 — Traiter chaque tenant
+    // ── ÉTAPE 3 : Traiter chaque tenant ────────────────────────────────────
     for (const ivrName of uniqueIVRNames) {
       const calls = grouped[ivrName];
       const clientName = this.normalizeIVRName(ivrName);
@@ -154,15 +89,17 @@ export class CallService {
       const domain = `${clientName}.localhost:3000`;
 
       this.logger.log(
+        `\n──────────────────────────────────────────`,
+      );
+      this.logger.log(
         `🔧 Traitement : "${ivrName}" → "${clientName}" (${calls.length} appels)`,
       );
 
       let tenant_created = false;
       let tenant_already_existed = false;
 
-      // ÉTAPE 3a — Créer le tenant si inexistant
-      const check =
-        await this.tenantService.checkTenantExistsByIVRName(ivrName);
+      // ── ÉTAPE 3a : Créer le tenant si inexistant ───────────────────────
+      const check = await this.tenantService.checkTenantExistsByIVRName(ivrName);
 
       if (check.exists) {
         this.logger.log(`✅ Tenant déjà existant : ${clientName}`);
@@ -191,21 +128,20 @@ export class CallService {
             tenant_already_existed: false,
             calls_inserted: 0,
             calls_skipped: calls.length,
-            call_errors: [
-              { call_id: 'N/A', error: (err as Error).message },
-            ],
+            call_errors: [{ call_id: 'N/A', error: (err as Error).message }],
           });
           total_skipped += calls.length;
           continue;
         }
       }
 
-      // ÉTAPE 3b — Récupérer la DB URL réelle depuis le master
+      // ── ÉTAPE 3b : Insérer les appels dans la DB du tenant ─────────────
       const resolvedDbUrl = check.exists
         ? await this.getTenantDbUrl(domain)
         : dbUrl;
 
       if (!resolvedDbUrl) {
+        this.logger.error(`❌ DB URL introuvable pour : ${domain}`);
         results.push({
           ivr_name: ivrName,
           tenant_name: clientName,
@@ -220,7 +156,6 @@ export class CallService {
         continue;
       }
 
-      // ÉTAPE 3c — Insérer les appels dans la DB du tenant
       const { inserted, skipped, errors } = await this.insertCalls(
         resolvedDbUrl,
         calls,
@@ -243,9 +178,13 @@ export class CallService {
       total_errors += errors.length;
     }
 
-    this.logger.log(
-      `📊 RÉSUMÉ : ${tenants_created} créés, ${tenants_existing} existants, ${total_inserted} appels insérés`,
-    );
+    this.logger.log(`\n══════════════════════════════════════════`);
+    this.logger.log(`📊 RÉSUMÉ IMPORT`);
+    this.logger.log(`   Tenants créés     : ${tenants_created}`);
+    this.logger.log(`   Tenants existants : ${tenants_existing}`);
+    this.logger.log(`   Appels insérés    : ${total_inserted}`);
+    this.logger.log(`   Appels ignorés    : ${total_skipped}`);
+    this.logger.log(`   Erreurs           : ${total_errors}`);
 
     return {
       tenants_created,
@@ -272,7 +211,9 @@ export class CallService {
     let skipped = 0;
     const errors: { call_id: string; error: string }[] = [];
 
-    this.logger.log(`💾 Insertion de ${calls.length} appels → ${tenantName}`);
+    this.logger.log(
+      `💾 Insertion de ${calls.length} appels → ${tenantName}`,
+    );
 
     for (const row of calls) {
       try {
@@ -308,6 +249,9 @@ export class CallService {
         });
         inserted++;
       } catch (err) {
+        this.logger.error(
+          `❌ Erreur call_id=${row.CallID} : ${(err as Error).message}`,
+        );
         errors.push({ call_id: row.CallID, error: (err as Error).message });
         skipped++;
       }
@@ -316,6 +260,7 @@ export class CallService {
     this.logger.log(
       `✅ ${tenantName} : ${inserted} insérés, ${skipped} erreurs`,
     );
+
     return { inserted, skipped, errors };
   }
 

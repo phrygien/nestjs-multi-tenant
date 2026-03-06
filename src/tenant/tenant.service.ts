@@ -33,6 +33,54 @@ export class TenantService {
     private readonly tenantPrisma: TenantPrismaService,
   ) {}
 
+  // ─── Normaliser le nom IVRName → snake_case lowercase ───────────────────
+  // "MOBALPA FRANCE" → "mobalpa_france"
+  // "My Client"      → "my_client"
+  // "ACME-CORP"      → "acme_corp"
+  private normalizeIVRName(ivrName: string): string {
+    return ivrName
+      .toLowerCase()
+      .trim()
+      .replace(/[\s\-]+/g, '_')    // espaces et tirets → underscore
+      .replace(/[^a-z0-9_]/g, '')  // supprimer les caractères spéciaux
+      .replace(/_+/g, '_')         // éviter les double underscores
+      .replace(/^_|_$/g, '');      // supprimer les underscores en début/fin
+  }
+
+  // ─── Vérifier si un tenant existe déjà par son IVRName ──────────────────
+  async checkTenantExistsByIVRName(ivrName: string): Promise<{
+    exists: boolean;
+    client_name: string;
+    db_name: string | null;
+    domain: string | null;
+  }> {
+    const clientName = this.normalizeIVRName(ivrName);
+    const domain = `${clientName}.localhost:3000`;
+
+    const existing = await this.masterPrisma.domain.findUnique({
+      where: { domain },
+      include: {
+        client: {
+          include: { tenants: { select: { db_url: true } } },
+        },
+      },
+    });
+
+    if (!existing) {
+      return { exists: false, client_name: clientName, db_name: null, domain: null };
+    }
+
+    const dbUrl = existing.client.tenants[0]?.db_url ?? null;
+    const dbName = dbUrl ? this.extractDbName(dbUrl) : null;
+
+    return {
+      exists: true,
+      client_name: existing.client.client_name,
+      db_name: dbName,
+      domain: existing.domain,
+    };
+  }
+
   // ─── Créer un seul tenant ────────────────────────────────────────────────
   async createTenant(dto: CreateTenantDto): Promise<TenantResult> {
     const existing = await this.masterPrisma.domain.findUnique({
@@ -125,6 +173,7 @@ export class TenantService {
   // ─── Import depuis calls.csv — extrait les tenants via colonne IVRName ───
   async createTenantsFromCallsCsv(buffer: Buffer): Promise<{
     created: TenantResult[];
+    skipped: { ivrName: string; reason: string }[];
     failed: TenantFailure[];
   }> {
     const rows = parse(buffer, {
@@ -147,13 +196,32 @@ export class TenantService {
     );
 
     const created: TenantResult[] = [];
+    const skipped: { ivrName: string; reason: string }[] = [];
     const failed: TenantFailure[] = [];
 
     for (const ivrName of uniqueIVRNames) {
-      const clientName = ivrName.toLowerCase().trim();
+      // Normaliser : "MOBALPA FRANCE" → "mobalpa_france"
+      const clientName = this.normalizeIVRName(ivrName);
       const dbName = `spm_${clientName}`;
       const dbUrl = `${process.env.POSTGRES_BASE_URL}/${dbName}`;
       const domain = `${clientName}.localhost:3000`;
+
+      this.logger.log(
+        `🔍 Vérification tenant : "${ivrName}" → "${clientName}"`,
+      );
+
+      // Vérifier si le tenant existe déjà avant de créer
+      const check = await this.checkTenantExistsByIVRName(ivrName);
+      if (check.exists) {
+        this.logger.warn(
+          `⏭️  Tenant déjà existant : ${clientName} (domain: ${check.domain})`,
+        );
+        skipped.push({
+          ivrName,
+          reason: `Tenant "${clientName}" déjà enregistré — domain: ${check.domain}, db: ${check.db_name}`,
+        });
+        continue;
+      }
 
       try {
         const result = await this.createTenant({
@@ -164,13 +232,13 @@ export class TenantService {
         created.push(result);
       } catch (err) {
         failed.push({
-          row: { ivrName },
+          row: { ivrName, clientName, domain },
           error: (err as Error).message,
         });
       }
     }
 
-    return { created, failed };
+    return { created, skipped, failed };
   }
 
   // ─── Import depuis un CSV tenants classique ──────────────────────────────
