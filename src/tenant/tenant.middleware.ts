@@ -23,10 +23,10 @@ export class TenantMiddleware implements NestMiddleware {
       req.tenantDbUrl = tenant.db_url;
       req.tenantClientId = tenant.client.id;
       req.tenantDomain = host;
-      this.logger.log(`✅ Tenant résolu : ${host} → client_id=${tenant.client.id}`);
+      this.logger.log(`Tenant résolu : ${host} → client_id=${tenant.client.id}`);
     } catch {
       // Domaine non trouvé — laisser passer pour les routes /tenants
-      this.logger.warn(`⚠️  Tenant non résolu pour : ${host}`);
+      this.logger.warn(`Tenant non résolu pour : ${host}`);
     }
 
     next();

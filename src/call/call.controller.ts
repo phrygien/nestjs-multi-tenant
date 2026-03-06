@@ -62,7 +62,7 @@ export class CallController {
 
   // ─── GET mobalpa.localhost:3000/calls/:id ────────────────────────────────
   // Détail d'un appel par son ID (avec empower_stats)
-  // ⚠️ Toujours en dernier pour éviter les conflits avec les routes fixes
+  // Toujours en dernier pour éviter les conflits avec les routes fixes
   @Get(':id')
   findOne(@Req() req: TenantRequest, @Param('id') id: string) {
     return this.callService.findOne(req, id);

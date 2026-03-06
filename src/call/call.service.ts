@@ -128,14 +128,14 @@ export class CallService {
       trim: true,
     }) as CallRow[];
 
-    this.logger.log(`📄 CSV lu : ${rows.length} lignes`);
+    this.logger.log(`CSV lu : ${rows.length} lignes`);
 
     // ÉTAPE 2 — Grouper par IVRName
     const grouped = this.groupByIVRName(rows);
     const uniqueIVRNames = Object.keys(grouped);
 
     this.logger.log(
-      `🏢 IVRName uniques : ${uniqueIVRNames.join(', ')} (${uniqueIVRNames.length} tenant(s))`,
+      `IVRName uniques : ${uniqueIVRNames.join(', ')} (${uniqueIVRNames.length} tenant(s))`,
     );
 
     const results: TenantImportResult[] = [];
@@ -154,7 +154,7 @@ export class CallService {
       const domain = `${clientName}.localhost:3000`;
 
       this.logger.log(
-        `🔧 Traitement : "${ivrName}" → "${clientName}" (${calls.length} appels)`,
+        `Traitement : "${ivrName}" → "${clientName}" (${calls.length} appels)`,
       );
 
       let tenant_created = false;
@@ -178,10 +178,10 @@ export class CallService {
           });
           tenant_created = true;
           tenants_created++;
-          this.logger.log(`✅ Tenant créé : ${clientName} → ${dbName}`);
+          this.logger.log(`Tenant créé : ${clientName} → ${dbName}`);
         } catch (err) {
           this.logger.error(
-            `❌ Échec création tenant ${clientName} : ${(err as Error).message}`,
+            `Échec création tenant ${clientName} : ${(err as Error).message}`,
           );
           results.push({
             ivr_name: ivrName,
@@ -244,7 +244,7 @@ export class CallService {
     }
 
     this.logger.log(
-      `📊 RÉSUMÉ : ${tenants_created} créés, ${tenants_existing} existants, ${total_inserted} appels insérés`,
+      `RÉSUMÉ : ${tenants_created} créés, ${tenants_existing} existants, ${total_inserted} appels insérés`,
     );
 
     return {
@@ -272,7 +272,7 @@ export class CallService {
     let skipped = 0;
     const errors: { call_id: string; error: string }[] = [];
 
-    this.logger.log(`💾 Insertion de ${calls.length} appels → ${tenantName}`);
+    this.logger.log(`Insertion de ${calls.length} appels → ${tenantName}`);
 
     for (const row of calls) {
       try {
@@ -314,7 +314,7 @@ export class CallService {
     }
 
     this.logger.log(
-      `✅ ${tenantName} : ${inserted} insérés, ${skipped} erreurs`,
+      `${tenantName} : ${inserted} insérés, ${skipped} erreurs`,
     );
     return { inserted, skipped, errors };
   }

@@ -63,14 +63,14 @@ export class CallImportService {
       trim: true,
     }) as CallRow[];
 
-    this.logger.log(`📄 CSV lu : ${rows.length} lignes`);
+    this.logger.log(`CSV lu : ${rows.length} lignes`);
 
     // ── ÉTAPE 2 : Grouper par IVRName ───────────────────────────────────────
     const grouped = this.groupByIVRName(rows);
     const uniqueIVRNames = Object.keys(grouped);
 
     this.logger.log(
-      `🏢 IVRName uniques : ${uniqueIVRNames.join(', ')} (${uniqueIVRNames.length} tenant(s))`,
+      `IVRName uniques : ${uniqueIVRNames.join(', ')} (${uniqueIVRNames.length} tenant(s))`,
     );
 
     const results: TenantImportResult[] = [];
@@ -102,11 +102,11 @@ export class CallImportService {
       const check = await this.tenantService.checkTenantExistsByIVRName(ivrName);
 
       if (check.exists) {
-        this.logger.log(`✅ Tenant déjà existant : ${clientName}`);
+        this.logger.log(`Tenant déjà existant : ${clientName}`);
         tenant_already_existed = true;
         tenants_existing++;
       } else {
-        this.logger.log(`🆕 Création du tenant : ${clientName}`);
+        this.logger.log(`Création du tenant : ${clientName}`);
         try {
           await this.tenantService.createTenant({
             client_name: clientName,
@@ -115,10 +115,10 @@ export class CallImportService {
           });
           tenant_created = true;
           tenants_created++;
-          this.logger.log(`✅ Tenant créé : ${clientName} → ${dbName}`);
+          this.logger.log(`Tenant créé : ${clientName} → ${dbName}`);
         } catch (err) {
           this.logger.error(
-            `❌ Échec création tenant ${clientName} : ${(err as Error).message}`,
+            `Échec création tenant ${clientName} : ${(err as Error).message}`,
           );
           results.push({
             ivr_name: ivrName,
@@ -141,7 +141,7 @@ export class CallImportService {
         : dbUrl;
 
       if (!resolvedDbUrl) {
-        this.logger.error(`❌ DB URL introuvable pour : ${domain}`);
+        this.logger.error(`DB URL introuvable pour : ${domain}`);
         results.push({
           ivr_name: ivrName,
           tenant_name: clientName,
@@ -179,7 +179,7 @@ export class CallImportService {
     }
 
     this.logger.log(`\n══════════════════════════════════════════`);
-    this.logger.log(`📊 RÉSUMÉ IMPORT`);
+    this.logger.log(` RÉSUMÉ IMPORT`);
     this.logger.log(`   Tenants créés     : ${tenants_created}`);
     this.logger.log(`   Tenants existants : ${tenants_existing}`);
     this.logger.log(`   Appels insérés    : ${total_inserted}`);
@@ -212,7 +212,7 @@ export class CallImportService {
     const errors: { call_id: string; error: string }[] = [];
 
     this.logger.log(
-      `💾 Insertion de ${calls.length} appels → ${tenantName}`,
+      `Insertion de ${calls.length} appels → ${tenantName}`,
     );
 
     for (const row of calls) {
@@ -250,7 +250,7 @@ export class CallImportService {
         inserted++;
       } catch (err) {
         this.logger.error(
-          `❌ Erreur call_id=${row.CallID} : ${(err as Error).message}`,
+          `Erreur call_id=${row.CallID} : ${(err as Error).message}`,
         );
         errors.push({ call_id: row.CallID, error: (err as Error).message });
         skipped++;
@@ -258,7 +258,7 @@ export class CallImportService {
     }
 
     this.logger.log(
-      `✅ ${tenantName} : ${inserted} insérés, ${skipped} erreurs`,
+      `${tenantName} : ${inserted} insérés, ${skipped} erreurs`,
     );
 
     return { inserted, skipped, errors };

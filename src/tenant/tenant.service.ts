@@ -112,7 +112,7 @@ export class TenantService {
     await this.runTenantMigrations(dto.db_url, dto.client_name);
 
     this.logger.log(
-      `✅ Tenant créé : ${dto.client_name} → ${dto.domain} (DB: ${dbName})`,
+      `Tenant créé : ${dto.client_name} → ${dto.domain} (DB: ${dbName})`,
     );
 
     return {
@@ -136,9 +136,9 @@ export class TenantService {
       );
       if (res.rowCount === 0) {
         await pg.query(`CREATE DATABASE "${dbName}"`);
-        this.logger.log(`🗄️  Base créée : ${dbName}`);
+        this.logger.log(`Base créée : ${dbName}`);
       } else {
-        this.logger.log(`🗄️  Base déjà existante : ${dbName}`);
+        this.logger.log(`Base déjà existante : ${dbName}`);
       }
     } finally {
       await pg.end();
@@ -147,7 +147,7 @@ export class TenantService {
 
   // ─── Appliquer les migrations Prisma sur un tenant DB ────────────────────
   async runTenantMigrations(dbUrl: string, tenantName: string): Promise<void> {
-    this.logger.log(`🔄 Migration pour : ${tenantName}`);
+    this.logger.log(`Migration pour : ${tenantName}`);
 
     const configPath = path.resolve(
       process.cwd(),
@@ -162,10 +162,10 @@ export class TenantService {
           TENANT_DATABASE_URL: dbUrl,
         },
       });
-      this.logger.log(`✅ Migrations OK pour : ${tenantName}`);
+      this.logger.log(`Migrations OK pour : ${tenantName}`);
     } catch (err) {
       const msg = (err as any).stderr?.toString() ?? (err as Error).message;
-      this.logger.error(`❌ Erreur migration ${tenantName} : ${msg}`);
+      this.logger.error(`Erreur migration ${tenantName} : ${msg}`);
       throw new Error(`Migration failed: ${msg}`);
     }
   }
@@ -192,7 +192,7 @@ export class TenantService {
     ];
 
     this.logger.log(
-      `📋 IVRName uniques trouvés : ${uniqueIVRNames.join(', ')}`,
+      `IVRName uniques trouvés : ${uniqueIVRNames.join(', ')}`,
     );
 
     const created: TenantResult[] = [];
@@ -207,14 +207,14 @@ export class TenantService {
       const domain = `${clientName}.localhost:3000`;
 
       this.logger.log(
-        `🔍 Vérification tenant : "${ivrName}" → "${clientName}"`,
+        `Vérification tenant : "${ivrName}" → "${clientName}"`,
       );
 
       // Vérifier si le tenant existe déjà avant de créer
       const check = await this.checkTenantExistsByIVRName(ivrName);
       if (check.exists) {
         this.logger.warn(
-          `⏭️  Tenant déjà existant : ${clientName} (domain: ${check.domain})`,
+          `Tenant déjà existant : ${clientName} (domain: ${check.domain})`,
         );
         skipped.push({
           ivrName,
