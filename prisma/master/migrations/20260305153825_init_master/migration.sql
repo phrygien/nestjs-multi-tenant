@@ -46,7 +46,7 @@ CREATE TABLE "domains" (
 -- CreateTable
 CREATE TABLE "historique_lecture" (
     "id" SERIAL NOT NULL,
-    "file_path" VARCHAR(45) NOT NULL,
+    "file_name" VARCHAR(45) NOT NULL,
     "status" "StatusType" NOT NULL DEFAULT 'failed',
     "error_message" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -60,7 +60,7 @@ CREATE TABLE "historique_lecture" (
 CREATE TABLE "exports" (
     "id" SERIAL NOT NULL,
     "export_type" "ExportTypeEnum" NOT NULL,
-    "file_path" VARCHAR(255) NOT NULL,
+    "file_name" VARCHAR(255) NOT NULL,
     "status" "StatusType" NOT NULL DEFAULT 'failed',
     "error_message" TEXT,
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,

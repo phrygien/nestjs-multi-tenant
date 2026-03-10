@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { parse } from 'csv-parse/sync';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { MasterPrismaService } from '../prisma/master-prisma.service';
+import { HistoriqueLectureService } from '../historique-lecture/historique-lecture.service';
 import { TenantService } from '../tenant/tenant.service';
 import type { TenantRequest } from '../tenant/tenant.middleware';
 
@@ -39,6 +40,7 @@ export class CallService {
     private readonly tenantPrisma: TenantPrismaService,
     private readonly masterPrisma: MasterPrismaService,
     private readonly tenantService: TenantService,
+    private readonly historiqueLectureService: HistoriqueLectureService,
   ) {}
 
   // ─── Récupérer le client Prisma du tenant courant ────────────────────────
@@ -113,7 +115,7 @@ export class CallService {
   // 3. Pour chaque IVRName : créer le tenant si inexistant
   // 4. Insérer les appels dans la DB du tenant
   // ─────────────────────────────────────────────────────────────────────────
-  async processCallsCsv(buffer: Buffer): Promise<{
+  async processCallsCsv(buffer: Buffer, file_name: string): Promise<{
     tenants_created: number;
     tenants_existing: number;
     total_inserted: number;
@@ -129,6 +131,14 @@ export class CallService {
     }) as CallRow[];
 
     this.logger.log(`CSV lu : ${rows.length} lignes`);
+
+    // Sauvegarde de la lecture
+    const histo = await this.historiqueLectureService.createHistoriqueLecture({
+      file_name: file_name,
+      status: 'failed',
+      error_message: undefined,
+      file_type: 'csv_stats'
+    });
 
     // ÉTAPE 2 — Grouper par IVRName
     const grouped = this.groupByIVRName(rows);
@@ -165,24 +175,32 @@ export class CallService {
         await this.tenantService.checkTenantExistsByIVRName(ivrName);
 
       if (check.exists) {
+
         this.logger.log(`✅ Tenant déjà existant : ${clientName}`);
         tenant_already_existed = true;
         tenants_existing++;
+
       } else {
+
         this.logger.log(`🆕 Création du tenant : ${clientName}`);
         try {
+
           await this.tenantService.createTenant({
             client_name: clientName,
             db_url: dbUrl,
             domain: domain,
           });
+
           tenant_created = true;
           tenants_created++;
           this.logger.log(`Tenant créé : ${clientName} → ${dbName}`);
+
         } catch (err) {
+          
           this.logger.error(
             `Échec création tenant ${clientName} : ${(err as Error).message}`,
           );
+          
           results.push({
             ivr_name: ivrName,
             tenant_name: clientName,
@@ -198,6 +216,7 @@ export class CallService {
           total_skipped += calls.length;
           continue;
         }
+        
       }
 
       // ÉTAPE 3b — Récupérer la DB URL réelle depuis le master
@@ -225,7 +244,11 @@ export class CallService {
         resolvedDbUrl,
         calls,
         clientName,
+        histo.id
       );
+
+      // Mettre a jour l'historique 
+      await this.historiqueLectureService.updateHistoriqueLectureToSucess(histo.id);
 
       results.push({
         ivr_name: ivrName,
@@ -262,6 +285,7 @@ export class CallService {
     dbUrl: string,
     calls: CallRow[],
     tenantName: string,
+    historique_lecture_id: number
   ): Promise<{
     inserted: number;
     skipped: number;
@@ -304,6 +328,7 @@ export class CallService {
             is_answered: row.IsAnswered?.toUpperCase() === 'TRUE',
             last_state: row.LastState || null,
             raw_data: row as any,
+            historique_lecture_id: historique_lecture_id
           },
         });
         inserted++;

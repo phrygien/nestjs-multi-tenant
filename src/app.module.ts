@@ -4,6 +4,7 @@ import { MasterPrismaModule } from './prisma/master-prisma.module';
 import { TenantModule } from './tenant/tenant.module';
 import { CallModule } from './call/call.module';
 import { TenantMiddleware } from './tenant/tenant.middleware';
+import { HistoriqueLectureService } from './historique-lecture/historique-lecture.service';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { TenantMiddleware } from './tenant/tenant.middleware';
     TenantModule,
     CallModule,
   ],
+  providers: [HistoriqueLectureService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

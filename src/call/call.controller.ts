@@ -36,7 +36,7 @@ export class CallController {
     if (!file) {
       throw new BadRequestException('Fichier manquant (champ: file)');
     }
-    return this.callService.processCallsCsv(file.buffer);
+    return this.callService.processCallsCsv(file.buffer, file.filename);
   }
 
   // ─── GET mobalpa.localhost:3000/calls/tenant-info ────────────────────────
