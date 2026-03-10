@@ -31,7 +31,7 @@ export class HistoriqueLectureService {
     async updateHistoriqueLectureToSucess(histo_id : number): Promise<void> {
     
         const existing = await this.masterPrisma.historiqueLecture.update({
-            where: { id: 1 },
+            where: { id: histo_id },
             data: {
                 status: "success"
             }

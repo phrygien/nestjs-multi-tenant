@@ -12,7 +12,6 @@ export class MasterPrismaService implements OnModuleInit, OnModuleDestroy {
   get clientTenant() { return this.prisma.clientTenant; }
   get domain() { return this.prisma.domain; }
   get historiqueLecture() { return this.prisma.historiqueLecture; }
-  get export() { return this.prisma.export; }
 
   constructor() {
     const pool = new Pool({

@@ -64,7 +64,7 @@ model Domain {
 
 model HistoriqueLecture {
   id            Int           @id @default(autoincrement())
-  file_name     String        @db.VarChar(45)
+  file_name     String        @db.VarChar(255)
   status        StatusType    @default(failed)
   error_message String?       @db.Text
   created_at    DateTime      @default(now())
