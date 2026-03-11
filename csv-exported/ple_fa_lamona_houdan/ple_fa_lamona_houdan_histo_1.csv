@@ -1,2 +1,0 @@
-CallID,StartTime,AnsweredTime,UserID,UserName,FromNumber,ToNumber,IVRName,direction,IsAnswered,LastState,TotalDuration
-CALLID6629153940832093435,2026-03-02 14:53:13,Invalid Date,,,33671859682,33426899992,ple_fa_lamona_houdan,in,false,MISSED,36

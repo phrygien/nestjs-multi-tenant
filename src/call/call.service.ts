@@ -123,7 +123,7 @@ export class CallService {
         try {
 
           await this.tenantService.createTenant({
-            client_name: clientName,
+            client_name: ivrName, // garder le nom dans le csv
             db_url: dbUrl,
             domain: domain,
           });
