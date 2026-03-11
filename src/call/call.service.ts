@@ -109,7 +109,7 @@ export class CallService {
 
       // ÉTAPE 3a — Créer le tenant si inexistant
       const check =
-        await this.tenantService.checkTenantExistsByIVRName(ivrName);
+        await this.tenantService.checkTenantExistsByIVRName(clientName);
 
       if (check.exists) {
 

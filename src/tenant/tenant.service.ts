@@ -48,13 +48,12 @@ export class TenantService {
   }
 
   // ─── Vérifier si un tenant existe déjà par son IVRName ──────────────────
-  async checkTenantExistsByIVRName(ivrName: string): Promise<{
+  async checkTenantExistsByIVRName(clientName: string): Promise<{
     exists: boolean;
     client_name: string;
     db_name: string | null;
     domain: string | null;
   }> {
-    const clientName = this.normalizeIVRName(ivrName);
     const domain = `${clientName}.localhost:3000`;
 
     const existing = await this.masterPrisma.domain.findUnique({
