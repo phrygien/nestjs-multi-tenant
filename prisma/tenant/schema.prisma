@@ -35,22 +35,19 @@ model Call {
   updated_at  DateTime  @updatedAt
   historique_lecture_id   Int?
 
-  empower_stats EmpowerStats[]
-
   @@map("call")
 }
 
 model EmpowerStats {
   empower_id    Int       @id @default(autoincrement())
-  call_id       String?   @db.VarChar(45)
+  call_uuid     String?   @db.VarChar(255)
+  call_id       String?   @db.VarChar(255) @unique
   score_global  Float?
-  sentiment     String?   @db.VarChar(45)
+  customer_sentiment     String?   @db.VarChar(255)
   moments       Json?
   transcription String?   @db.Text
   raw_data      Json?
   created_at    DateTime?
-
-  call Call? @relation(fields: [call_id], references: [call_id])
 
   @@map("empower_stats")
 }

@@ -5,6 +5,7 @@ import { TenantModule } from './tenant/tenant.module';
 import { CallModule } from './call/call.module';
 import { TenantMiddleware } from './tenant/tenant.middleware';
 import { HistoriqueLectureService } from './historique-lecture/historique-lecture.service';
+import { RingoverService } from './ringover/ringover.service';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { HistoriqueLectureService } from './historique-lecture/historique-lectur
     TenantModule,
     CallModule,
   ],
-  providers: [HistoriqueLectureService],
+  providers: [HistoriqueLectureService, RingoverService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

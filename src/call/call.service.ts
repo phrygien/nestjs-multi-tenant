@@ -4,6 +4,7 @@ import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { MasterPrismaService } from '../prisma/master-prisma.service';
 import { HistoriqueLectureService } from '../historique-lecture/historique-lecture.service';
 import { TenantService } from '../tenant/tenant.service';
+import { RingoverService } from '../ringover/ringover.service';
 import type { TenantRequest } from '../tenant/tenant.middleware';
 
 interface CallRow {
@@ -40,6 +41,7 @@ export class CallService {
     private readonly tenantPrisma: TenantPrismaService,
     private readonly masterPrisma: MasterPrismaService,
     private readonly tenantService: TenantService,
+    private readonly ringoverService: RingoverService,
     private readonly historiqueLectureService: HistoriqueLectureService,
   ) {}
 
@@ -103,8 +105,7 @@ export class CallService {
   async findOne(req: TenantRequest, callId: string) {
     const prisma = this.getClient(req);
     return prisma.call.findUnique({
-      where: { call_id: callId },
-      include: { empower_stats: true },
+      where: { call_id: callId }
     });
   }
 
@@ -196,7 +197,7 @@ export class CallService {
           this.logger.log(`Tenant créé : ${clientName} → ${dbName}`);
 
         } catch (err) {
-          
+
           this.logger.error(
             `Échec création tenant ${clientName} : ${(err as Error).message}`,
           );
@@ -281,16 +282,8 @@ export class CallService {
   }
 
   // ─── Insérer les appels dans la DB du tenant ─────────────────────────────
-  private async insertCalls(
-    dbUrl: string,
-    calls: CallRow[],
-    tenantName: string,
-    historique_lecture_id: number
-  ): Promise<{
-    inserted: number;
-    skipped: number;
-    errors: { call_id: string; error: string }[];
-  }> {
+  private async insertCalls( dbUrl: string, calls: CallRow[], tenantName: string, historique_lecture_id: number ): Promise<{ inserted: number; skipped: number; errors: { call_id: string; error: string }[];}> {
+    
     const prisma = this.tenantPrisma.getClient(dbUrl);
     let inserted = 0;
     let skipped = 0;
@@ -300,6 +293,7 @@ export class CallService {
 
     for (const row of calls) {
       try {
+
         await prisma.call.upsert({
           where: { call_id: row.CallID },
           update: {
@@ -332,10 +326,68 @@ export class CallService {
           },
         });
         inserted++;
+
+        // ajout ringover empower 
+        try{
+          
+          let ringover_object = await this.ringoverService.getEmpowerCallByID(row.CallID.replace("CALLID", ''));
+
+          await prisma.empowerStats.upsert({
+            where: { call_id: row.CallID.replace("CALLID", '') },
+            update: {
+              call_uuid: ringover_object.call_uuid,
+              call_id: row.CallID.replace("CALLID", ''),
+              score_global: ringover_object.call_score,
+              customer_sentiment: ringover_object.customer_sentiment,
+              moments: ringover_object.moments,
+              transcription: ringover_object.transcription.speeches.map(s => `Speaker ${s.channelId}: ${s.text}`).join('\n'),
+              raw_data: ringover_object,
+            },
+            create: {
+              call_uuid: ringover_object.call_uuid,
+              call_id: row.CallID.replace("CALLID", ''),
+              score_global: ringover_object.call_score,
+              customer_sentiment: ringover_object.customer_sentiment,
+              moments: ringover_object.moments,
+              transcription: ringover_object.transcription.speeches.map(s => `Speaker ${s.channelId}: ${s.text}`).join('\n'),
+              raw_data: ringover_object,
+            }
+          });
+          this.logger.log(`Info ringover inserer pour le call_id ${row.CallID}`,);
+
+        }catch(error){
+
+          console.log(error.message);
+
+          this.logger.error(`Api ringover defaillant pour le call_id ${row.CallID} - ${error}`,);
+          await prisma.empowerStats.upsert({
+            where: { call_id: row.CallID.replace("CALLID", '') },
+            update: {
+              call_uuid: null,
+              call_id: row.CallID.replace("CALLID", ''),
+              score_global: null,
+              customer_sentiment: null,
+              moments: undefined,
+              transcription: null,
+              raw_data: undefined,
+            },
+            create: {
+              call_uuid: null,
+              call_id: row.CallID.replace("CALLID", ''),
+              score_global: null,
+              customer_sentiment: null,
+              moments: undefined,
+              transcription: null,
+              raw_data: undefined,
+            }
+          });
+        }
+
       } catch (err) {
         errors.push({ call_id: row.CallID, error: (err as Error).message });
         skipped++;
       }
+
     }
 
     this.logger.log(

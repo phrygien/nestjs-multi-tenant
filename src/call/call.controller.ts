@@ -10,31 +10,7 @@ import * as path from 'path';
 export class CallController {
   constructor(private readonly callService: CallService) {}
 
-  // ─── POST /calls/process ─────────────────────────────────────────────────
-  // PROCESS COMPLET :
-  //   1. Lire le CSV
-  //   2. Créer le tenant depuis IVRName (si inexistant)
-  //   3. Insérer les appels dans la DB du tenant
-  // Form-data: file = calls.csv
-  @Post('process')
-  @UseInterceptors(FileInterceptor('file'))
-  processCalls(@UploadedFile() file: Express.Multer.File): Promise<{
-    tenants_created: number;
-    tenants_existing: number;
-    total_inserted: number;
-    total_skipped: number;
-    total_errors: number;
-    results: TenantImportResult[];
-  }> {
-
-    if (!file) {
-      throw new BadRequestException('Fichier manquant (champ: file)');
-    }
-    let result = this.callService.processCallsCsv(file.buffer, file.path);
-    return result;
-  }
-
-   // ─── POST /calls/process ─────────────────────────────────────────────────
+  // ─── POST /calls/processauto ─────────────────────────────────────────────────
   // PROCESS COMPLET :
   //   1. Lire le CSV dans le dossier
   //   2. Créer le tenant depuis IVRName (si inexistant)
@@ -74,6 +50,30 @@ export class CallController {
       console.log(`Fichier ${fileName} déplacé`);
     }
 
+    return result;
+  }
+
+  // ─── POST /calls/process ─────────────────────────────────────────────────
+  // PROCESS COMPLET :
+  //   1. Lire le CSV
+  //   2. Créer le tenant depuis IVRName (si inexistant)
+  //   3. Insérer les appels dans la DB du tenant
+  // Form-data: file = calls.csv
+  @Post('process')
+  @UseInterceptors(FileInterceptor('file'))
+  processCalls(@UploadedFile() file: Express.Multer.File): Promise<{
+    tenants_created: number;
+    tenants_existing: number;
+    total_inserted: number;
+    total_skipped: number;
+    total_errors: number;
+    results: TenantImportResult[];
+  }> {
+
+    if (!file) {
+      throw new BadRequestException('Fichier manquant (champ: file)');
+    }
+    let result = this.callService.processCallsCsv(file.buffer, file.path);
     return result;
   }
 
