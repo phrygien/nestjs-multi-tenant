@@ -2,7 +2,7 @@
 CREATE TABLE "call" (
     "call_id" VARCHAR(255) NOT NULL,
     "date_start" TIMESTAMP(3),
-    "date_end" TIMESTAMP(3),
+    "date_answer" TIMESTAMP(3),
     "user_id" VARCHAR(45),
     "user_name" VARCHAR(45),
     "direction" VARCHAR(20),

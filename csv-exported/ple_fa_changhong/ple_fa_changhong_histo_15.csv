@@ -1,0 +1,5 @@
+CallID,StartTime,AnsweredTime,UserID,UserName,FromNumber,ToNumber,IVRName,direction,IsAnswered,LastState,TotalDuration
+CALLID9243138712993863482,Mon Mar 02 2026 10:35:05 GMT+0400 (Mauritius Standard Time),Mon Mar 02 2026 10:36:49 GMT+0400 (Mauritius Standard Time),USER23335751,Megane  Jolicoeur,33321366484,33489417051,ple_fa_changhong,in,true,ANSWERED,253
+CALLID4659820616036734036,Mon Mar 02 2026 10:40:19 GMT+0400 (Mauritius Standard Time),Mon Mar 02 2026 10:44:39 GMT+0400 (Mauritius Standard Time),USER23215533,veroniqua LAMBIN,33670337018,33489417051,ple_fa_changhong,in,true,ANSWERED,957
+CALLID3747656901769869810,Mon Mar 02 2026 13:59:53 GMT+0400 (Mauritius Standard Time),Mon Mar 02 2026 14:00:02 GMT+0400 (Mauritius Standard Time),USER23215533,veroniqua LAMBIN,33651057477,33489417051,ple_fa_changhong,in,true,ANSWERED,297
+CALLID13306660387440786934,Mon Mar 02 2026 14:08:43 GMT+0400 (Mauritius Standard Time),Mon Mar 02 2026 14:10:08 GMT+0400 (Mauritius Standard Time),USER23277698,Anaelle Grandport,33781537769,33489417051,ple_fa_changhong,in,true,ANSWERED,912

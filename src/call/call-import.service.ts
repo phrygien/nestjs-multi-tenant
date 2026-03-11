@@ -221,7 +221,7 @@ export class CallImportService {
           where: { call_id: row.CallID },
           update: {
             date_start: this.parseDate(row.StartTime),
-            date_end: this.parseDate(row.AnsweredTime),
+            date_answer: this.parseDate(row.AnsweredTime),
             user_id: row.UserID || null,
             user_name: row.UserName || null,
             direction: row.direction || null,
@@ -235,7 +235,7 @@ export class CallImportService {
           create: {
             call_id: row.CallID,
             date_start: this.parseDate(row.StartTime),
-            date_end: this.parseDate(row.AnsweredTime),
+            date_answer: this.parseDate(row.AnsweredTime),
             user_id: row.UserID || null,
             user_name: row.UserName || null,
             direction: row.direction || null,

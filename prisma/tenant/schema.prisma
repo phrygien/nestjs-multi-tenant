@@ -20,7 +20,7 @@ enum ExportTypeEnum {
 model Call {
   call_id     String    @id @db.VarChar(255)
   date_start  DateTime?
-  date_end    DateTime?
+  date_answer    DateTime?
   user_id     String?   @db.VarChar(45)
   user_name   String?   @db.VarChar(45)
   direction   String?   @db.VarChar(20)
@@ -55,7 +55,7 @@ model EmpowerStats {
 model Export {
   id                      Int            @id @default(autoincrement())
   export_type             ExportTypeEnum
-  file_name               String         @db.VarChar(255)
+  file_path               String         @db.VarChar(255)
   status                  StatusType     @default(failed)
   error_message           String?        @db.Text
   created_at              DateTime?      @default(now())
