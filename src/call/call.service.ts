@@ -45,70 +45,6 @@ export class CallService {
     private readonly historiqueLectureService: HistoriqueLectureService,
   ) {}
 
-  // ─── Récupérer le client Prisma du tenant courant ────────────────────────
-  private getClient(req: TenantRequest) {
-    if (!req.tenantDbUrl) {
-      throw new BadRequestException(
-        'Tenant non résolu. Vérifier le domaine utilisé.',
-      );
-    }
-    return this.tenantPrisma.getClient(req.tenantDbUrl);
-  }
-
-  // ─── Infos du tenant + DB ────────────────────────────────────────────────
-  async getTenantInfo(req: TenantRequest) {
-    if (!req.tenantDbUrl) {
-      throw new BadRequestException(
-        'Tenant non résolu. Vérifier le domaine utilisé.',
-      );
-    }
-    const prisma = this.getClient(req);
-    const totalCalls = await prisma.call.count();
-    return {
-      tenant_name: req.tenantDomain,
-      db_name: req.tenantDbUrl.split('/').pop(),
-      db_url: req.tenantDbUrl,
-      total_calls: totalCalls,
-      status: 'active',
-    };
-  }
-
-  // ─── Statistiques des appels ─────────────────────────────────────────────
-  async getStats(req: TenantRequest) {
-    const prisma = this.getClient(req);
-    const [total, answered, missed] = await Promise.all([
-      prisma.call.count(),
-      prisma.call.count({ where: { is_answered: true } }),
-      prisma.call.count({ where: { is_answered: false } }),
-    ]);
-    return {
-      tenant: req.tenantDomain,
-      db_name: req.tenantDbUrl?.split('/').pop(),
-      total,
-      answered,
-      missed,
-      answer_rate:
-        total > 0 ? ((answered / total) * 100).toFixed(2) + '%' : '0%',
-    };
-  }
-
-  // ─── Liste tous les appels ───────────────────────────────────────────────
-  async findAll(req: TenantRequest) {
-    const prisma = this.getClient(req);
-    return prisma.call.findMany({
-      orderBy: { date_start: 'desc' },
-      take: 100,
-    });
-  }
-
-  // ─── Trouver un appel par ID ─────────────────────────────────────────────
-  async findOne(req: TenantRequest, callId: string) {
-    const prisma = this.getClient(req);
-    return prisma.call.findUnique({
-      where: { call_id: callId }
-    });
-  }
-
   // ─────────────────────────────────────────────────────────────────────────
   // PROCESS COMPLET CSV
   // 1. Lire le CSV
@@ -329,31 +265,39 @@ export class CallService {
 
         // ajout ringover empower 
         try{
-          
-          let ringover_object = await this.ringoverService.getEmpowerCallByID(row.CallID.replace("CALLID", ''));
 
-          await prisma.empowerStats.upsert({
+          let exist = await prisma.empowerStats.findUnique({
             where: { call_id: row.CallID.replace("CALLID", '') },
-            update: {
-              call_uuid: ringover_object.call_uuid,
-              call_id: row.CallID.replace("CALLID", ''),
-              score_global: ringover_object.call_score,
-              customer_sentiment: ringover_object.customer_sentiment,
-              moments: ringover_object.moments,
-              transcription: ringover_object.transcription.speeches.map(s => `Speaker ${s.channelId}: ${s.text}`).join('\n'),
-              raw_data: ringover_object,
-            },
-            create: {
-              call_uuid: ringover_object.call_uuid,
-              call_id: row.CallID.replace("CALLID", ''),
-              score_global: ringover_object.call_score,
-              customer_sentiment: ringover_object.customer_sentiment,
-              moments: ringover_object.moments,
-              transcription: ringover_object.transcription.speeches.map(s => `Speaker ${s.channelId}: ${s.text}`).join('\n'),
-              raw_data: ringover_object,
-            }
           });
-          this.logger.log(`Info ringover inserer pour le call_id ${row.CallID}`,);
+          
+          if(!exist){
+            let ringover_object = await this.ringoverService.getEmpowerCallByID(row.CallID.replace("CALLID", ''));
+
+            await prisma.empowerStats.upsert({
+              where: { call_id: row.CallID.replace("CALLID", '') },
+              update: {
+                call_uuid: ringover_object.call_uuid,
+                call_id: row.CallID.replace("CALLID", ''),
+                score_global: ringover_object.call_score,
+                customer_sentiment: ringover_object.customer_sentiment,
+                moments: ringover_object.moments,
+                transcription: ringover_object.transcription.speeches.map(s => `Speaker ${s.channelId}: ${s.text}`).join('\n'),
+                raw_data: ringover_object,
+              },
+              create: {
+                call_uuid: ringover_object.call_uuid,
+                call_id: row.CallID.replace("CALLID", ''),
+                score_global: ringover_object.call_score,
+                customer_sentiment: ringover_object.customer_sentiment,
+                moments: ringover_object.moments,
+                transcription: ringover_object.transcription.speeches.map(s => `Speaker ${s.channelId}: ${s.text}`).join('\n'),
+                raw_data: ringover_object,
+              }
+            });
+            this.logger.log(`Info ringover inserer pour le call_id ${row.CallID}`,);
+          }else{
+            this.logger.log(`Info ringover deja inserer pour le call_id ${row.CallID}`,);
+          }
 
         }catch(error){
 
@@ -395,6 +339,9 @@ export class CallService {
     );
     return { inserted, skipped, errors };
   }
+
+
+  // ---------- Utils Parts ------------ //
 
   // ─── Récupérer la DB URL depuis le master par domaine ────────────────────
   private async getTenantDbUrl(domain: string): Promise<string | null> {

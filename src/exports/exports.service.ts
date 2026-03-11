@@ -11,6 +11,7 @@ export class ExportsService {
     constructor( private readonly tenantPrisma: TenantPrismaService ) {}
 
     async exportAuto(dbUrl: string, client_name: string):Promise<void>{
+        
         const prisma = this.tenantPrisma.getClient(dbUrl);
         this.logger.log(`export auto start for ${client_name}: ${dbUrl}`);
 
