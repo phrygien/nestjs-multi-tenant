@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
+import { MasterPrismaService } from '../prisma/master-prisma.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import dayjs from 'dayjs';
@@ -8,10 +9,13 @@ import dayjs from 'dayjs';
 export class ExportsService {
     private readonly logger = new Logger(ExportsService.name);
 
-    constructor( private readonly tenantPrisma: TenantPrismaService ) {}
+    constructor( 
+        private readonly tenantPrisma: TenantPrismaService,
+        private readonly masterPrisma: MasterPrismaService
+    ) {}
 
     async exportAuto(dbUrl: string, client_name: string):Promise<void>{
-        
+
         const prisma = this.tenantPrisma.getClient(dbUrl);
         this.logger.log(`export auto start for ${client_name}: ${dbUrl}`);
 
@@ -101,6 +105,25 @@ export class ExportsService {
 
         this.logger.log(`All good for ${client_name}`);
 
+    }
+
+    // start export auto
+    async startCallExportForAllClient() {
+
+        const record = await this.masterPrisma.clientTenant.findMany({
+        include: {
+            client: true
+        }
+        });
+
+        await Promise.all(
+        record.map(client_tenant =>
+            this.exportAuto(
+            client_tenant.db_url,
+            client_tenant.client.client_name
+            )
+        )
+        );
     }
 
 }

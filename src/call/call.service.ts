@@ -6,6 +6,8 @@ import { HistoriqueLectureService } from '../historique-lecture/historique-lectu
 import { TenantService } from '../tenant/tenant.service';
 import { RingoverService } from '../ringover/ringover.service';
 import type { TenantRequest } from '../tenant/tenant.middleware';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface CallRow {
   CallID: string;
@@ -44,6 +46,44 @@ export class CallService {
     private readonly ringoverService: RingoverService,
     private readonly historiqueLectureService: HistoriqueLectureService,
   ) {}
+
+
+  //start auto importation
+  async processCallsAuto(): Promise<{
+    tenants_created: number;
+    tenants_existing: number;
+    total_inserted: number;
+    total_skipped: number;
+    total_errors: number;
+    results: TenantImportResult[];
+  }> {
+
+    const folderPath = path.join(process.cwd(), 'csv-template', 'new');
+    const files = fs.readdirSync(folderPath);
+
+    if (files.length === 0) {
+      throw new Error('Aucun fichier CSV trouvé');
+    }
+
+    const fileName = files[0];
+    const filePath = path.join(folderPath, fileName);
+    const buffer = fs.readFileSync(filePath);
+  
+    let result = await this.processCallsCsv(buffer, fileName);
+
+    if(result.total_inserted > 0 ){
+      // deplacement du fichier traiter
+      const destinationFolder = path.join(process.cwd(), 'csv-template', 'processed');
+
+      const sourcePath = path.join(folderPath, fileName);
+      const destinationPath = path.join(destinationFolder, fileName);
+
+      fs.renameSync(sourcePath, destinationPath);
+      console.log(`Fichier ${fileName} déplacé`);
+    }
+
+    return result;
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // PROCESS COMPLET CSV
