@@ -69,20 +69,36 @@ export class CallService {
     const filePath = path.join(folderPath, fileName);
     const buffer = fs.readFileSync(filePath);
   
-    let result = await this.processCallsCsv(buffer, fileName);
+    try{
 
-    if(result.total_inserted > 0 ){
-      // deplacement du fichier traiter
-      const destinationFolder = path.join(process.cwd(), 'csv-template', 'processed');
+      let result = await this.processCallsCsv(buffer, fileName);
+
+      if(result.total_inserted > 0 ){
+        // deplacement du fichier traiter
+        const destinationFolder = path.join(process.cwd(), 'csv-template', 'processed');
+
+        const sourcePath = path.join(folderPath, fileName);
+        const destinationPath = path.join(destinationFolder, fileName);
+
+        fs.renameSync(sourcePath, destinationPath);
+        console.log(`Fichier ${fileName} déplacé`);
+      }
+
+      return result;
+
+    }catch(error){
+      // deplacement du fichier comme errone
+      const destinationFolder = path.join(process.cwd(), 'csv-template', 'failed');
 
       const sourcePath = path.join(folderPath, fileName);
       const destinationPath = path.join(destinationFolder, fileName);
 
       fs.renameSync(sourcePath, destinationPath);
-      console.log(`Fichier ${fileName} déplacé`);
-    }
+      console.log(`Fichier ${fileName} déplacé comme failed`);
+      throw error;
 
-    return result;
+    }
+    
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -106,6 +122,30 @@ export class CallService {
       skip_empty_lines: true,
       trim: true,
     }) as CallRow[];
+
+    // Verification si c'est le bon CSV
+    const requiredColumns = [
+      "CallID",
+      "StartTime",
+      "AnsweredTime",
+      "UserID",
+      "UserName",
+      "FromNumber",
+      "ToNumber",
+      "IVRName",
+      "direction",
+      "IsAnswered",
+      "LastState",
+      "TotalDuration"
+    ];
+
+    const csvColumns = Object.keys(rows[0]);
+
+    for (const col of requiredColumns) {
+      if (!csvColumns.includes(col)) {
+        throw new BadRequestException(`CSV invalide : colonne manquante ${col}`);
+      }
+    }
 
     this.logger.log(`CSV lu : ${rows.length} lignes`);
 
