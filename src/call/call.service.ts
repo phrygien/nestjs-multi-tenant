@@ -80,7 +80,11 @@ export class CallService {
         const sourcePath = path.join(folderPath, fileName);
         const destinationPath = path.join(destinationFolder, fileName);
 
-        fs.renameSync(sourcePath, destinationPath);
+        // fs.renameSync(sourcePath, destinationPath);
+
+        fs.copyFileSync(sourcePath, destinationPath);
+        fs.unlinkSync(sourcePath);
+
         console.log(`Fichier ${fileName} déplacé`);
       }
 
@@ -93,7 +97,11 @@ export class CallService {
       const sourcePath = path.join(folderPath, fileName);
       const destinationPath = path.join(destinationFolder, fileName);
 
-      fs.renameSync(sourcePath, destinationPath);
+      // fs.renameSync(sourcePath, destinationPath);
+
+      fs.copyFileSync(sourcePath, destinationPath);
+      fs.unlinkSync(sourcePath);
+
       console.log(`Fichier ${fileName} déplacé comme failed`);
       throw error;
 
