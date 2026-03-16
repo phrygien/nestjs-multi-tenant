@@ -125,7 +125,7 @@ export class CallService {
     results: TenantImportResult[];
   }> {
     // ÉTAPE 1 — Parser le CSV
-    const rows = parse(buffer, {
+    const rows = await parse(buffer, {
       columns: true,
       skip_empty_lines: true,
       trim: true,
