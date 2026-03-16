@@ -26,6 +26,8 @@
     "prisma:migrate:tenant:create-only": "prisma migrate dev --schema=prisma/tenant/schema.prisma --create-only"
   },
   "dependencies": {
+    "@azure/identity": "^4.13.0",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
@@ -37,6 +39,7 @@
     "csv-parse": "^6.1.0",
     "dayjs": "^1.11.19",
     "dotenv": "^17.3.1",
+    "isomorphic-fetch": "^3.0.0",
     "pg": "^8.20.0",
     "qs": "^6.15.0",
     "reflect-metadata": "^0.2.2",

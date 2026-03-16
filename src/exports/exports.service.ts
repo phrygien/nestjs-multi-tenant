@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { MasterPrismaService } from '../prisma/master-prisma.service';
+import { EmailService } from '../email/email.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import dayjs from 'dayjs';
@@ -11,7 +12,8 @@ export class ExportsService {
 
     constructor( 
         private readonly tenantPrisma: TenantPrismaService,
-        private readonly masterPrisma: MasterPrismaService
+        private readonly masterPrisma: MasterPrismaService,
+        private readonly email: EmailService
     ) {}
 
     async exportAuto(dbUrl: string, client_name: string):Promise<void>{
@@ -99,7 +101,9 @@ export class ExportsService {
                     error_message: null,
                     historique_lecture_id: histoId
                 }
-            });           
+            });  
+            
+            await this.email.sendCsvEmail(filePath, fileName, "Veuillez trouver le fichier CSV en pièce jointe");
 
         }
 
