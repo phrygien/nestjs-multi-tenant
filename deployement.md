@@ -3,7 +3,7 @@ npx prisma generate --schema=prisma/master/schema.prisma
 npx prisma generate --schema=prisma/tenant/schema.prisma
 
 npx prisma migrate dev --config=prisma/master/prisma.config.ts --name init_master
-npx prisma migrate dev --config=prisma/tenant/prisma.config.ts --name init_tenant --create-only
+npx prisma migrate dev --config=prisma/tenant/prisma.config.ts --name init_tenant
 
 # execution export
 npx ts-node src/exports/tasks/export-auto.task.ts
