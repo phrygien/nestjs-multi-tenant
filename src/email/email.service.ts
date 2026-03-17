@@ -40,6 +40,13 @@ export class EmailService {
                         }
                     }
                 ],
+                ccRecipients: [ 
+                    {
+                        emailAddress: {
+                            address: "dev@spmservices.fr"
+                        }
+                    }
+                ],
                 attachments: [
                     {
                         "@odata.type": "#microsoft.graph.fileAttachment",
