@@ -22,6 +22,29 @@ interface CallRow {
   IsAnswered: string;
   LastState: string;
   TotalDuration: string;
+  id: string;
+  ChannelID: string;
+  type: string;
+  HangupTime: string;
+  InCallDuration: string;
+  QueueDuration: string;
+  HoldDuration: string;
+  RingingDuration: string;
+  AfterCallDuration: string;
+  IVRDuration: string;
+  contact: string;
+  IVRID: string;
+  ScenarioName: string;
+  File: string;
+  Note: string;
+  Tags: string;
+  HangupBy: string;
+  Groups: string;
+  Notes: string;
+  Locations: string;
+  DigitEntered: string;
+  Missed: string;
+
 }
 
 export interface TenantImportResult {
@@ -126,9 +149,14 @@ export class CallService {
   }> {
     // ÉTAPE 1 — Parser le CSV
     const rows = await parse(buffer, {
+      delimiter: ';',
       columns: true,
       skip_empty_lines: true,
       trim: true,
+
+      relax_column_count: true,
+      relax_quotes: true,
+      quote: false,
     }) as CallRow[];
 
     // Verification si c'est le bon CSV
@@ -144,7 +172,28 @@ export class CallService {
       "direction",
       "IsAnswered",
       "LastState",
-      "TotalDuration"
+      "TotalDuration",
+      "id",
+      "ChannelID",
+      "type",
+      "HangupTime",
+      "InCallDuration",
+      "QueueDuration",
+      "HoldDuration",
+      "RingingDuration",
+      "AfterCallDuration",
+      "IVRDuration",
+      "contact",
+      "IVRID",
+      "ScenarioName",
+      "File",
+      "Note",
+      "Tags",
+      "Groups",
+      "Notes",
+      "Locations",
+      "DigitEntered",
+      "Missed"
     ];
 
     const csvColumns = Object.keys(rows[0]);
@@ -211,6 +260,7 @@ export class CallService {
         try {
 
           await this.tenantService.createTenant({
+            ivr_id: calls[0].IVRID,
             client_name: ivrName, // garder le nom dans le csv
             db_url: dbUrl,
             domain: domain,
@@ -332,6 +382,29 @@ export class CallService {
             is_answered: row.IsAnswered?.toUpperCase() === 'TRUE',
             last_state: row.LastState || null,
             raw_data: row as any,
+            id: row.id || null,
+            ChannelID: row.ChannelID || null,
+            type: row.type || null,
+            HangupTime: this.parseDate(row.HangupTime) || null,
+            InCallDuration: parseFloat(row.InCallDuration) || null,
+            QueueDuration: parseFloat(row.QueueDuration) || null,
+            HoldDuration: parseFloat(row.HoldDuration) || null,
+            RingingDuration: parseFloat(row.RingingDuration) || null,
+            AfterCallDuration: parseFloat(row.AfterCallDuration) || null,
+            IVRDuration: parseFloat(row.IVRDuration) || null,
+            contact: row.contact || null,
+            IVRID: row.IVRID || null,
+            ScenarioName: row.ScenarioName || null,
+            File: row.File || null,
+            Note: row.Note || null,
+            Tags: row.Tags || null,
+            HangupBy: row.HangupBy || null,
+            Groups: row.Groups || null,
+            Notes: row.Notes || null,
+            Locations: row.Locations || null,
+            DigitEntered: row.Locations || null,
+            Missed: row.Missed || null,
+
           },
           create: {
             call_id: row.CallID,
@@ -346,7 +419,29 @@ export class CallService {
             is_answered: row.IsAnswered?.toUpperCase() === 'TRUE',
             last_state: row.LastState || null,
             raw_data: row as any,
-            historique_lecture_id: historique_lecture_id
+            historique_lecture_id: historique_lecture_id,
+            id: row.id || null,
+            ChannelID: row.ChannelID || null,
+            type: row.type || null,
+            HangupTime: this.parseDate(row.HangupTime) || null,
+            InCallDuration: parseFloat(row.InCallDuration) || null,
+            QueueDuration: parseFloat(row.QueueDuration) || null,
+            HoldDuration: parseFloat(row.HoldDuration) || null,
+            RingingDuration: parseFloat(row.RingingDuration) || null,
+            AfterCallDuration: parseFloat(row.AfterCallDuration) || null,
+            IVRDuration: parseFloat(row.IVRDuration) || null,
+            contact: row.contact || null,
+            IVRID: row.IVRID || null,
+            ScenarioName: row.ScenarioName || null,
+            File: row.File || null,
+            Note: row.Note || null,
+            Tags: row.Tags || null,
+            HangupBy: row.HangupBy || null,
+            Groups: row.Groups || null,
+            Notes: row.Notes || null,
+            Locations: row.Locations || null,
+            DigitEntered: row.Locations || null,
+            Missed: row.Missed || null,
           },
         });
         inserted++;

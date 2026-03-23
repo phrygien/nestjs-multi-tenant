@@ -20,7 +20,7 @@ enum ExportTypeEnum {
 model Call {
   call_id     String    @id @db.VarChar(255)
   date_start  DateTime?
-  date_answer    DateTime?
+  date_answer DateTime?
   user_id     String?   @db.VarChar(45)
   user_name   String?   @db.VarChar(45)
   direction   String?   @db.VarChar(20)
@@ -34,6 +34,28 @@ model Call {
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
   historique_lecture_id   Int?
+  id          String?
+  ChannelID   String?  @db.VarChar(45)
+  type        String?  @db.VarChar(45)
+  HangupTime  DateTime?
+  InCallDuration  Decimal?  @db.Decimal(20, 2)
+  QueueDuration   Decimal?  @db.Decimal(20, 6)
+  HoldDuration    Decimal?  @db.Decimal(20, 6)
+  RingingDuration Decimal?  @db.Decimal(20, 6)
+  AfterCallDuration Decimal?  @db.Decimal(20, 6)
+  IVRDuration       Decimal? @db.Decimal(20, 6)
+  contact String?
+  IVRID  String? 
+  ScenarioName String?
+  File String? @db.VarChar(255)
+  Note String?  @db.VarChar(255)
+  Tags String? @db.VarChar(120)
+  HangupBy  String? @db.VarChar(45)
+  Groups String? @db.VarChar(45)
+  Notes  String? @db.VarChar(150)
+  Locations String? @db.VarChar(255)
+  DigitEntered  String? @db.VarChar(255)
+  Missed  DateTime?
 
   @@map("call")
 }

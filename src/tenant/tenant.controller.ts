@@ -30,31 +30,31 @@ export class TenantController {
   // ─── POST /tenants/import/calls-csv ─────────────────────────────────────
   // Créer les tenants depuis le fichier calls.csv (colonne IVRName)
   // Form-data: file = calls.csv
-  @Post('import/calls-csv')
-  @UseInterceptors(FileInterceptor('file'))
-  importFromCallsCsv(
-    @UploadedFile() file: Express.Multer.File,
-  ): Promise<{ created: TenantResult[]; failed: TenantFailure[] }> {
-    if (!file) {
-      throw new BadRequestException('Fichier manquant (champ: file)');
-    }
-    return this.tenantService.createTenantsFromCallsCsv(file.buffer);
-  }
+  // @Post('import/calls-csv')
+  // @UseInterceptors(FileInterceptor('file'))
+  // importFromCallsCsv(
+  //   @UploadedFile() file: Express.Multer.File,
+  // ): Promise<{ created: TenantResult[]; failed: TenantFailure[] }> {
+  //   if (!file) {
+  //     throw new BadRequestException('Fichier manquant (champ: file)');
+  //   }
+  //   return this.tenantService.createTenantsFromCallsCsv(file.buffer);
+  // }
 
   // ─── POST /tenants/import/csv ────────────────────────────────────────────
   // Créer les tenants depuis un CSV classique
   // Colonnes requises: client_name, db_url, domain
   // Form-data: file = tenants.csv
-  @Post('import/csv')
-  @UseInterceptors(FileInterceptor('file'))
-  importFromCsv(
-    @UploadedFile() file: Express.Multer.File,
-  ): Promise<{ created: TenantResult[]; failed: TenantFailure[] }> {
-    if (!file) {
-      throw new BadRequestException('Fichier manquant (champ: file)');
-    }
-    return this.tenantService.createTenantsFromCsv(file.buffer);
-  }
+  // @Post('import/csv')
+  // @UseInterceptors(FileInterceptor('file'))
+  // importFromCsv(
+  //   @UploadedFile() file: Express.Multer.File,
+  // ): Promise<{ created: TenantResult[]; failed: TenantFailure[] }> {
+  //   if (!file) {
+  //     throw new BadRequestException('Fichier manquant (champ: file)');
+  //   }
+  //   return this.tenantService.createTenantsFromCsv(file.buffer);
+  // }
 
   // ─── GET /tenants ────────────────────────────────────────────────────────
   // Lister tous les tenants avec leurs domaines

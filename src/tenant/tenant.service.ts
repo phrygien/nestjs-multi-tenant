@@ -95,6 +95,7 @@ export class TenantService {
 
     const client = await this.masterPrisma.client.create({
       data: {
+        ivr_id: dto.ivr_id,
         client_name: dto.client_name,
         ftp_host: dto.ftp_host ?? null,
         ftp_user: dto.ftp_user ?? null,
@@ -170,76 +171,76 @@ export class TenantService {
     }
   }
 
-  // ─── Import depuis calls.csv — extrait les tenants via colonne IVRName ───
-  async createTenantsFromCallsCsv(buffer: Buffer): Promise<{
-    created: TenantResult[];
-    skipped: { ivrName: string; reason: string }[];
-    failed: TenantFailure[];
-  }> {
-    const rows = parse(buffer, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-    }) as any[];
+  // // ─── Import depuis calls.csv — extrait les tenants via colonne IVRName ───
+  // async createTenantsFromCallsCsv(buffer: Buffer): Promise<{
+  //   created: TenantResult[];
+  //   skipped: { ivrName: string; reason: string }[];
+  //   failed: TenantFailure[];
+  // }> {
+  //   const rows = parse(buffer, {
+  //     columns: true,
+  //     skip_empty_lines: true,
+  //     trim: true,
+  //   }) as any[];
 
-    // Extraire les valeurs uniques de la colonne IVRName
-    const uniqueIVRNames: string[] = [
-      ...new Set<string>(
-        rows
-          .map((r) => r.IVRName as string)
-          .filter((name) => name && name.trim() !== ''),
-      ),
-    ];
+  //   // Extraire les valeurs uniques de la colonne IVRName
+  //   const uniqueIVRNames: string[] = [
+  //     ...new Set<string>(
+  //       rows
+  //         .map((r) => r.IVRName as string)
+  //         .filter((name) => name && name.trim() !== ''),
+  //     ),
+  //   ];
 
-    this.logger.log(
-      `IVRName uniques trouvés : ${uniqueIVRNames.join(', ')}`,
-    );
+  //   this.logger.log(
+  //     `IVRName uniques trouvés : ${uniqueIVRNames.join(', ')}`,
+  //   );
 
-    const created: TenantResult[] = [];
-    const skipped: { ivrName: string; reason: string }[] = [];
-    const failed: TenantFailure[] = [];
+  //   const created: TenantResult[] = [];
+  //   const skipped: { ivrName: string; reason: string }[] = [];
+  //   const failed: TenantFailure[] = [];
 
-    for (const ivrName of uniqueIVRNames) {
-      // Normaliser : "MOBALPA FRANCE" → "mobalpa_france"
-      const clientName = this.normalizeIVRName(ivrName);
-      const dbName = `spm_${clientName}`;
-      const dbUrl = `${process.env.POSTGRES_BASE_URL}/${dbName}`;
-      const domain = `${clientName}.localhost:3000`;
+  //   for (const ivrName of uniqueIVRNames) {
+  //     // Normaliser : "MOBALPA FRANCE" → "mobalpa_france"
+  //     const clientName = this.normalizeIVRName(ivrName);
+  //     const dbName = `spm_${clientName}`;
+  //     const dbUrl = `${process.env.POSTGRES_BASE_URL}/${dbName}`;
+  //     const domain = `${clientName}.localhost:3000`;
 
-      this.logger.log(
-        `Vérification tenant : "${ivrName}" → "${clientName}"`,
-      );
+  //     this.logger.log(
+  //       `Vérification tenant : "${ivrName}" → "${clientName}"`,
+  //     );
 
-      // Vérifier si le tenant existe déjà avant de créer
-      const check = await this.checkTenantExistsByIVRName(ivrName);
-      if (check.exists) {
-        this.logger.warn(
-          `Tenant déjà existant : ${clientName} (domain: ${check.domain})`,
-        );
-        skipped.push({
-          ivrName,
-          reason: `Tenant "${clientName}" déjà enregistré — domain: ${check.domain}, db: ${check.db_name}`,
-        });
-        continue;
-      }
+  //     // Vérifier si le tenant existe déjà avant de créer
+  //     const check = await this.checkTenantExistsByIVRName(ivrName);
+  //     if (check.exists) {
+  //       this.logger.warn(
+  //         `Tenant déjà existant : ${clientName} (domain: ${check.domain})`,
+  //       );
+  //       skipped.push({
+  //         ivrName,
+  //         reason: `Tenant "${clientName}" déjà enregistré — domain: ${check.domain}, db: ${check.db_name}`,
+  //       });
+  //       continue;
+  //     }
 
-      try {
-        const result = await this.createTenant({
-          client_name: clientName,
-          db_url: dbUrl,
-          domain: domain,
-        });
-        created.push(result);
-      } catch (err) {
-        failed.push({
-          row: { ivrName, clientName, domain },
-          error: (err as Error).message,
-        });
-      }
-    }
+  //     try {
+  //       const result = await this.createTenant({
+  //         client_name: clientName,
+  //         db_url: dbUrl,
+  //         domain: domain,
+  //       });
+  //       created.push(result);
+  //     } catch (err) {
+  //       failed.push({
+  //         row: { ivrName, clientName, domain },
+  //         error: (err as Error).message,
+  //       });
+  //     }
+  //   }
 
-    return { created, skipped, failed };
-  }
+  //   return { created, skipped, failed };
+  // }
 
   // ─── Import depuis un CSV tenants classique ──────────────────────────────
   async createTenantsFromCsv(buffer: Buffer): Promise<{

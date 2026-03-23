@@ -19,6 +19,7 @@ enum FileTypeEnum {
 
 model Client {
   id                 Int      @id @default(autoincrement())
+  ivr_id             String   @db.VarChar(45)
   client_name        String   @db.VarChar(45)
   ftp_host           String?  @db.VarChar(45)
   ftp_user           String?  @db.VarChar(45)
