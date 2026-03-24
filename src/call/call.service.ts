@@ -454,7 +454,9 @@ export class CallService {
           });
           
           if(!exist){
-            let ringover_object = await this.ringoverService.getEmpowerCallByID(row.CallID.replace("CALLID", ''));
+            //let ringover_object = await this.ringoverService.getEmpowerCallByID(row.CallID.replace("CALLID", ''));
+
+            let ringover_object = await this.ringoverService.getEmpowerByChannelID(row.ChannelID.replace("CHANNELID", ''));
 
             await prisma.empowerStats.upsert({
               where: { call_id: row.CallID.replace("CALLID", '') },
@@ -477,9 +479,9 @@ export class CallService {
                 raw_data: ringover_object,
               }
             });
-            this.logger.log(`Info ringover inserer pour le call_id ${row.CallID}`,);
+            this.logger.log(`Info ringover inserer pour le call_id ${row.CallID} ${row.ChannelID}`,);
           }else{
-            this.logger.log(`Info ringover deja inserer pour le call_id ${row.CallID}`,);
+            this.logger.log(`Info ringover deja inserer pour le call_id ${row.CallID} ${row.ChannelID}`,);
           }
 
         }catch(error){

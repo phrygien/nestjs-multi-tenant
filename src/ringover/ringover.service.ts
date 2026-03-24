@@ -44,4 +44,22 @@ export class RingoverService {
         }
     }
 
+    async getEmpowerByChannelID(channel_id: string){
+        try {
+
+            const empower = await this.ringover.get(`/empower/platform/ringover/channel/${channel_id}`);
+            const call_uuid = empower.data;
+
+            const empower_call = await this.ringover.get(`/empower/call/${call_uuid}`);
+
+            return empower_call.data;
+
+        } catch (error) {
+            throw new HttpException(
+                error.response?.data || error.message,
+                error.response?.status || 500
+            );
+        }
+    }
+
 }
