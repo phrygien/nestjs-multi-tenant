@@ -63,4 +63,51 @@ export class EmailService {
         .post(message);
     }
 
+    async sendMultiCsvEmail(
+        attachments: { filePath: string, fileName: string }[],
+        Subject: string,
+        Message: string
+    ) {
+
+        const formattedAttachments = attachments.map(file => {
+            const fileContent = fs.readFileSync(file.filePath).toString("base64");
+
+            return {
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                name: file.fileName,
+                contentType: "text/csv",
+                contentBytes: fileContent
+            };
+        });
+
+        const message = {
+            message: {
+                subject: Subject,
+                body: {
+                    contentType: "Text",
+                    content: Message
+                },
+                toRecipients: [
+                    {
+                        emailAddress: {
+                            address: process.env.DESTINATAIRE_MAIL
+                        }
+                    }
+                ],
+                ccRecipients: [
+                    {
+                        emailAddress: {
+                            address: "dev@spmservices.fr"
+                        }
+                    }
+                ],
+                attachments: formattedAttachments
+            }
+        };
+
+        await this.client
+            .api(`/users/${process.env.MS_EMAIL_SENDER}/sendMail`)
+            .post(message);
+    }
+
 }
