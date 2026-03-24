@@ -117,11 +117,7 @@ export class ExportsService {
                     COUNT(*) FILTER (WHERE NOT is_answered) AS call_missed,
                     SUM(duration) AS total_duration,
                     ROUND(AVG(duration), 2) AS avg_duration,
-                    ROUND(
-                        100.0 * SUM(CASE WHEN last_state = 'ANSWERED' THEN 1 ELSE 0 END) 
-                        / COUNT(*),
-                        2
-                    ) AS answer_rate
+                    ROUND(COUNT(*) FILTER (WHERE is_answered)::numeric / COUNT(*), 2) AS answer_rate
                 FROM call 
                 WHERE direction LIKE 'in'
                 GROUP BY time_15min
@@ -191,11 +187,7 @@ export class ExportsService {
                     COUNT(*) FILTER (WHERE NOT is_answered) AS call_missed,
                     SUM(duration) AS total_duration,
                     ROUND(AVG(duration), 2) AS avg_duration,
-                    ROUND(
-                        100.0 * SUM(CASE WHEN last_state = 'ANSWERED' THEN 1 ELSE 0 END) 
-                        / COUNT(*),
-                        2
-                    ) AS answer_rate
+                    ROUND(COUNT(*) FILTER (WHERE is_answered)::numeric / COUNT(*), 2) AS answer_rate
                 FROM call 
                 WHERE direction LIKE 'out'
                 GROUP BY time_15min
