@@ -44,7 +44,6 @@ interface CallRow {
   Locations: string;
   DigitEntered: string;
   Missed: string;
-
 }
 
 export interface TenantImportResult {
@@ -150,14 +149,56 @@ export class CallService {
     // ÉTAPE 1 — Parser le CSV
     const rows = await parse(buffer, {
       delimiter: ';',
-      columns: true,
+      //columns: true,
       skip_empty_lines: true,
       trim: true,
-
-      relax_column_count: true,
+      columns: [
+        'id',
+        'CallID',
+        'ChannelID',
+        'type',
+        'direction',
+        'IsAnswered',
+        'LastState',
+        'StartTime',
+        'AnsweredTime',
+        'HangupTime',
+        'TotalDuration',
+        'InCallDuration',
+        'QueueDuration',
+        'HoldDuration',
+        'RingingDuration',
+        'AfterCallDuration',
+        'IVRDuration',
+        'FromNumber',
+        'ToNumber',
+        'contact',
+        'UserID',
+        'UserName',
+        'IVRID',
+        'IVRName',
+        'ScenarioName',
+        'File',
+        'Note',
+        'Tags',
+        'HangupBy',
+        'Groups',
+        'Notes',
+        'Locations',
+        'DigitEntered',
+        'Missed'
+      ],
+      from_line: 2,
+      // relax_column_count: true,
       relax_quotes: true,
-      quote: false,
+      quote: '"',
+      skip_records_with_empty_values: false,
     }) as CallRow[];
+
+    const validRows = rows.filter(row =>
+      row.CallID?.trim() !== '' &&
+      row.StartTime?.trim() !== ''
+    );
 
     // Verification si c'est le bon CSV
     const requiredColumns = [
@@ -196,7 +237,7 @@ export class CallService {
       "Missed"
     ];
 
-    const csvColumns = Object.keys(rows[0]);
+    const csvColumns = Object.keys(validRows[0]);
 
     for (const col of requiredColumns) {
       if (!csvColumns.includes(col)) {
@@ -204,7 +245,7 @@ export class CallService {
       }
     }
 
-    this.logger.log(`CSV lu : ${rows.length} lignes`);
+    this.logger.log(`CSV lu : ${validRows.length} lignes`);
 
     // Sauvegarde de la lecture
     const histo = await this.historiqueLectureService.createHistoriqueLecture({
@@ -215,7 +256,7 @@ export class CallService {
     });
 
     // ÉTAPE 2 — Grouper par IVRName
-    const grouped = this.groupByIVRName(rows);
+    const grouped = this.groupByIVRName(validRows);
     const uniqueIVRNames = Object.keys(grouped);
 
     this.logger.log(
@@ -401,10 +442,9 @@ export class CallService {
             HangupBy: row.HangupBy || null,
             Groups: row.Groups || null,
             Notes: row.Notes || null,
-            Locations: row.Locations || null,
-            DigitEntered: row.Locations || null,
-            Missed: row.Missed || null,
-
+            Locations: null,
+            DigitEntered: null,
+            Missed: this.cleanDate(row.Missed) || null,
           },
           create: {
             call_id: row.CallID,
@@ -439,9 +479,9 @@ export class CallService {
             HangupBy: row.HangupBy || null,
             Groups: row.Groups || null,
             Notes: row.Notes || null,
-            Locations: row.Locations || null,
-            DigitEntered: row.Locations || null,
-            Missed: row.Missed || null,
+            Locations: null,
+            DigitEntered: null,
+            Missed: this.cleanDate(row.Missed) || null,
           },
         });
         inserted++;
@@ -522,6 +562,9 @@ export class CallService {
     this.logger.log(
       `${tenantName} : ${inserted} insérés, ${skipped} erreurs`,
     );
+    
+    this.logger.error(errors);
+
     return { inserted, skipped, errors };
   }
 
@@ -544,17 +587,28 @@ export class CallService {
   }
 
   // ─── Grouper les lignes CSV par IVRName ──────────────────────────────────
+  // private groupByIVRName(rows: CallRow[]): Record<string, CallRow[]> {
+  //   return rows.reduce(
+  //     (acc, row) => {
+  //       const key = row.IVRName?.trim();
+  //       if (!key) return acc;
+  //       if (!acc[key]) acc[key] = [];
+  //       acc[key].push(row);
+  //       return acc;
+  //     },
+  //     {} as Record<string, CallRow[]>,
+  //   );
+  // }
+
   private groupByIVRName(rows: CallRow[]): Record<string, CallRow[]> {
-    return rows.reduce(
-      (acc, row) => {
-        const key = row.IVRName?.trim();
-        if (!key) return acc;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(row);
-        return acc;
-      },
-      {} as Record<string, CallRow[]>,
-    );
+    return rows.reduce((acc, row) => {
+      const key = row.IVRName?.trim() || 'unknown';
+
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(row);
+
+      return acc;
+    }, {} as Record<string, CallRow[]>);
   }
 
   // ─── Normaliser IVRName → snake_case lowercase ───────────────────────────
@@ -573,5 +627,28 @@ export class CallService {
     if (!dateStr || dateStr.trim() === '') return null;
     const d = new Date(dateStr);
     return isNaN(d.getTime()) ? null : d;
+  }
+
+  private cleanValue(value?: string): string | null {
+    if (!value) return null;
+
+    const cleaned = value
+      .replace(/[;,]+/g, '') // supprime ; et ,
+      .trim();
+
+    return cleaned === '' ? null : cleaned;
+  }
+
+  // ___ Clean date _______
+  private cleanDate(value?: string): Date | null {
+    const cleaned = this.cleanValue(value);
+    if (!cleaned) return null;
+
+    // format attendu: 2026-03-25 17:29:16
+    const iso = cleaned.replace(' ', 'T');
+
+    const date = new Date(iso);
+
+    return isNaN(date.getTime()) ? null : date;
   }
 }
