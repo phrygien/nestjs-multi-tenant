@@ -13,7 +13,9 @@ async function bootstrap() {
 
   const exportService = app.get(ExportsService);
 
-  await exportService.startCallExportForAllClient();
+  //await exportService.startCallExportForAllClient();
+
+  await exportService.startCallExportForAllClientInOne();
 
   await app.close();
 }
