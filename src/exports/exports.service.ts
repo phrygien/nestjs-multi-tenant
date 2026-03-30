@@ -384,7 +384,7 @@ export class ExportsService {
                 await prisma.export.create({
                 data: {
                         export_type: 'csv_stats',
-                        file_path: `/csv-exported/ALL/ALL_CALLS_${know}.csv, /csv-exported/ALL/ALL_CALL_IN_CDN_${know}.csv, /csv-exported/ALL/ALL_CALL_OUT_CDN_${know}.csv`,
+                        file_path: `/csv-exported/ALL/ALL_CALLS_Agent_non_compile_${know}.csv, /csv-exported/ALL/ALL_CALL_IN_CDN_${know}.csv, /csv-exported/ALL/ALL_CALL_OUT_CDN_${know}.csv`,
                         status: "success",
                         error_message: null,
                         historique_lecture_id: histoId
@@ -433,7 +433,7 @@ export class ExportsService {
 
         const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
 
-        const filePath = path.join(exportDir, `ALL_CALLS_${know}.csv`);
+        const filePath = path.join(exportDir, `ALL_CALLS_Agent_non_compile_${know}.csv`);
         fs.writeFileSync(filePath, csv);
 
         // ----------- CSV CALL IN -----------
@@ -486,7 +486,7 @@ export class ExportsService {
 
         await this.email.sendMultiCsvEmail(
             [
-                { filePath, fileName: `ALL_CALLS_${know}.csv` },
+                { filePath, fileName: `ALL_CALLS_Agent_non_compile_${know}.csv` },
                 { filePath: filePathIn, fileName: `ALL_CALL_IN_CDN_${know}.csv` },
                 { filePath: filePathOut, fileName: `ALL_CALL_OUT_CDN_${know}.csv` }
             ],
