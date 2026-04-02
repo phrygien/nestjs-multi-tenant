@@ -299,7 +299,14 @@ export class ExportsService {
 
         this.logger.log('Export ALL IN ONE start');
 
-        const know = Date.now();
+        const know = Math.floor(Date.now() / 1000);
+
+        const date = new Date();
+        date.setDate(date.getDate() - 1);
+
+        const jj = String(date.getDate()).padStart(2, '0');
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+
         const allCalls: any[] = [];
         const allCallInStats: any[] = [];
         const allCallOutStats: any[] = [];
@@ -384,7 +391,7 @@ export class ExportsService {
                 await prisma.export.create({
                 data: {
                         export_type: 'csv_stats',
-                        file_path: `/csv-exported/ALL/ALL_CALLS_Agent_non_compile_${know}.csv, /csv-exported/ALL/ALL_CALL_IN_CDN_${know}.csv, /csv-exported/ALL/ALL_CALL_OUT_CDN_${know}.csv`,
+                        file_path: `/csv-exported/ALL/Fichier_final_SPM_-_Agent_non_compile_Ringover_${jj}_${mm}_${know}.csv, /csv-exported/ALL/Fichier_final_SPM_-_TCD_(CDN_par_quart_d_heure)_${jj}_${mm}_${know}.csv, /csv-exported/ALL/ALL_CALL_OUT_CDN_${know}.csv`,
                         status: "success",
                         error_message: null,
                         historique_lecture_id: histoId
@@ -433,7 +440,7 @@ export class ExportsService {
 
         const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
 
-        const filePath = path.join(exportDir, `ALL_CALLS_Agent_non_compile_${know}.csv`);
+        const filePath = path.join(exportDir, `Fichier_final_SPM_-_Agent_non_compile_Ringover_${jj}_${mm}_${know}.csv`);
         fs.writeFileSync(filePath, csv);
 
         // ----------- CSV CALL IN -----------
@@ -455,7 +462,7 @@ export class ExportsService {
             ...rowsIn.map(r => r.join(','))
         ].join('\n');
 
-        const filePathIn = path.join(exportDir, `ALL_CALL_IN_CDN_${know}.csv`);
+        const filePathIn = path.join(exportDir, `Fichier_final_SPM_-_TCD_(CDN_par_quart_d_heure)_${jj}_${mm}_${know}.csv`);
         fs.writeFileSync(filePathIn, csvIn);
 
         // ----------- CSV CALL OUT -----------
@@ -486,8 +493,8 @@ export class ExportsService {
 
         await this.email.sendMultiCsvEmail(
             [
-                { filePath, fileName: `ALL_CALLS_Agent_non_compile_${know}.csv` },
-                { filePath: filePathIn, fileName: `ALL_CALL_IN_CDN_${know}.csv` },
+                { filePath, fileName: `Fichier final SPM - Agent non compile Ringover ${jj}_${mm} ${know}.csv` },
+                { filePath: filePathIn, fileName: `Fichier final SPM - TCD (CDN_par_quart_d'heure) ${jj}_${mm} ${know}.csv` },
                 { filePath: filePathOut, fileName: `ALL_CALL_OUT_CDN_${know}.csv` }
             ],
             "Export GLOBAL",
