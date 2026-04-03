@@ -493,8 +493,8 @@ export class ExportsService {
 
         await this.email.sendMultiCsvEmail(
             [
-                { filePath, fileName: `Fichier final SPM - Agent non compile Ringover ${jj}_${mm} ${know}.csv` },
-                { filePath: filePathIn, fileName: `Fichier final SPM - TCD (CDN_par_quart_d'heure) ${jj}_${mm} ${know}.csv` },
+                { filePath, fileName: `Fichier final SPM - Agent non compile Ringover ${jj}_${mm}.csv` },
+                { filePath: filePathIn, fileName: `Fichier final SPM - TCD (CDN_par_quart_d'heure) ${jj}_${mm}.csv` },
                 { filePath: filePathOut, fileName: `ALL_CALL_OUT_CDN_${know}.csv` }
             ],
             "Export GLOBAL",
