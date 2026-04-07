@@ -299,6 +299,12 @@ export class ExportsService {
 
         this.logger.log('Export ALL IN ONE start');
 
+        const formatDate = (d) => {
+            return d && dayjs(d).isValid()
+                ? dayjs(d).format('DD/MM/YYYY HH:mm:ss')
+                : '';
+        };
+
         const know = Math.floor(Date.now() / 1000);
 
         const date = new Date();
@@ -351,7 +357,13 @@ export class ExportsService {
                     COUNT(*) FILTER (WHERE NOT is_answered) AS call_missed,
                     SUM(duration) AS total_duration,
                     ROUND(AVG(duration), 2) AS avg_duration,
-                    ROUND(COUNT(*) FILTER (WHERE is_answered)::numeric / COUNT(*), 2) AS answer_rate
+                    REPLACE(
+					    TO_CHAR(
+					        (COUNT(*) FILTER (WHERE is_answered)::numeric / COUNT(*)) * 100,
+					        'FM999990.00'
+					    ),
+					    '.', ','
+					) || '%' AS answer_rate
                     FROM call 
                     WHERE direction = 'in' AND historique_lecture_id = ${histoId}
                     GROUP BY time_15min
@@ -374,7 +386,13 @@ export class ExportsService {
                     COUNT(*) FILTER (WHERE NOT is_answered) AS call_missed,
                     SUM(duration) AS total_duration,
                     ROUND(AVG(duration), 2) AS avg_duration,
-                    ROUND(COUNT(*) FILTER (WHERE is_answered)::numeric / COUNT(*), 2) AS answer_rate
+                    REPLACE(
+					    TO_CHAR(
+					        (COUNT(*) FILTER (WHERE is_answered)::numeric / COUNT(*)) * 100,
+					        'FM999990.00'
+					    ),
+					    '.', ','
+					) || '%' AS answer_rate
                     FROM call 
                     WHERE direction = 'out' AND historique_lecture_id = ${histoId}
                     GROUP BY time_15min
@@ -391,7 +409,7 @@ export class ExportsService {
                 await prisma.export.create({
                 data: {
                         export_type: 'csv_stats',
-                        file_path: `/csv-exported/ALL/Fichier_final_SPM_-_Agent_non_compile_Ringover_${jj}_${mm}_${know}.csv, /csv-exported/ALL/Fichier_final_SPM_-_TCD_(CDN_par_quart_d_heure)_${jj}_${mm}_${know}.csv, /csv-exported/ALL/ALL_CALL_OUT_CDN_${know}.csv`,
+                        file_path: `/csv-exported/ALL/Fichier_final_SPM_-_Agent_non_compile_Ringover_${jj}_${mm}_${know}.csv, /csv-exported/ALL/Fichier_final_SPM_-_TCD_(CDN_par_quart_d_heure)_${jj}_${mm}_${know}.csv, /csv-exported/ALL/Fichier_final_SPM_-_TCD_OUT_(CDN_par_quart_d_heure)_${jj}_${mm}_${know}.csv`,
                         status: "success",
                         error_message: null,
                         historique_lecture_id: histoId
@@ -412,28 +430,30 @@ export class ExportsService {
             "CallID",
             "StartTime",
             "AnsweredTime",
-            "IVRName",
             "UserID",
             "UserName",
             "FromNumber",
             "ToNumber",
-            "Direction",
+            "IVRName",
+            "direction",
             "IsAnswered",
             "LastState",
-            "Duration"
+            "TotalDuration"
         ];
 
-        const rows = allCalls.map(call => [
+        const rows = await allCalls.map(call => [
             call.call_id,
-            dayjs(call.date_start).format('YYYY-MM-DD HH:mm:ss'),
-            dayjs(call.date_answer).format('YYYY-MM-DD HH:mm:ss'),
-            call.client_name,
+            formatDate(call.date_start),
+            formatDate(call.date_answer),
+            // dayjs(call.date_start).format('DD/MM/YYYY HH:mm:ss'),
+            // dayjs(call.date_answer).format('DD/MM/YYYY HH:mm:ss'),
             call.user_id,
             call.user_name,
             call.from_number,
             call.to_number,
+            call.client_name,
             call.direction,
-            call.is_answered,
+            call.is_answered != null ? call.is_answered.toString().toUpperCase() : '',
             call.last_state,
             call.duration
         ]);
@@ -441,12 +461,12 @@ export class ExportsService {
         const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
 
         const filePath = path.join(exportDir, `Fichier_final_SPM_-_Agent_non_compile_Ringover_${jj}_${mm}_${know}.csv`);
-        fs.writeFileSync(filePath, csv);
+        await fs.writeFileSync(filePath, csv);
 
         // ----------- CSV CALL IN -----------
 
-        const rowsIn = allCallInStats.map(r => [
-            dayjs(r.time_15min).format('YYYY-MM-DD'),
+        const rowsIn = await allCallInStats.map(r => [
+            dayjs(r.time_15min).format('DD/MM/YYYY'),
             dayjs(r.time_15min).format('HH:mm:ss'),
             r.client_name,
             r.nb_call,
@@ -454,21 +474,57 @@ export class ExportsService {
             r.call_missed,
             r.total_duration,
             r.avg_duration,
-            r.answer_rate
+            '"' + r.answer_rate + '"'
         ]);
 
+        const totalsIn = await allCallInStats.reduce((acc, r) => {
+            acc.date = dayjs(r.time_15min).format('DD/MM/YYYY');
+            acc.nb_call += Number(r.nb_call);
+            acc.call_answer += Number(r.call_answer);
+            acc.call_missed += Number(r.call_missed);
+            acc.total_duration += Number(r.total_duration);
+            return acc;
+        }, {
+            nb_call: 0,
+            call_answer: 0,
+            call_missed: 0,
+            total_duration: 0
+        });
+        // Moyenne durée
+        totalsIn.avg_duration = totalsIn.nb_call
+            ? (totalsIn.total_duration / totalsIn.nb_call).toFixed(2)
+            : 0;
+
+        // Taux de réponse
+        totalsIn.answer_rate = totalsIn.nb_call
+            ? ((totalsIn.call_answer / totalsIn.nb_call) * 100).toFixed(2).replace('.', ',') + '%'
+            : '0,00%';
+
+        const totalRowIn = [
+            'Total pour '+ totalsIn.date,                         // Date vide
+            '',                    // Label
+            '',                         // IVRName vide
+            totalsIn.nb_call,
+            totalsIn.call_answer,
+            totalsIn.call_missed,
+            totalsIn.total_duration,
+            totalsIn.avg_duration,
+            '"' + totalsIn.answer_rate + '"'
+        ];
+
         const csvIn = [
-            "Date du jour, Intervalle 15 min, IVRName, Nombre d'appels recus, Appels Repondus, Appels Perdus, Duree totale d'appel, Duree moyenne d'appel, Taux de reponse",
-            ...rowsIn.map(r => r.join(','))
+            "Date du jour,Intervalle 15 min,IVRName,Nombre d'appels reçus,Appels Répondus,Appels Perdus,Durée totale d'appel,Durée moyenne d'appel,Taux de réponse",
+            ...rowsIn.map(r => r.join(',')),
+            totalRowIn.join(',') 
         ].join('\n');
 
         const filePathIn = path.join(exportDir, `Fichier_final_SPM_-_TCD_(CDN_par_quart_d_heure)_${jj}_${mm}_${know}.csv`);
-        fs.writeFileSync(filePathIn, csvIn);
+        await fs.writeFileSync(filePathIn, csvIn);
 
         // ----------- CSV CALL OUT -----------
 
-        const rowsOut = allCallOutStats.map(r => [
-            dayjs(r.time_15min).format('YYYY-MM-DD'),
+        const rowsOut = await allCallOutStats.map(r => [
+            dayjs(r.time_15min).format('DD/MM/YYYY'),
             dayjs(r.time_15min).format('HH:mm:ss'),
             r.client_name,
             r.nb_call,
@@ -476,16 +532,52 @@ export class ExportsService {
             r.call_missed,
             r.total_duration,
             r.avg_duration,
-            r.answer_rate
+            '"' + r.answer_rate + '"'
         ]);
 
+        const totalsOut = await allCallOutStats.reduce((acc, r) => {
+            acc.date = dayjs(r.time_15min).format('DD/MM/YYYY');
+            acc.nb_call += Number(r.nb_call);
+            acc.call_answer += Number(r.call_answer);
+            acc.call_missed += Number(r.call_missed);
+            acc.total_duration += Number(r.total_duration);
+            return acc;
+        }, {
+            nb_call: 0,
+            call_answer: 0,
+            call_missed: 0,
+            total_duration: 0
+        });
+        // Moyenne durée
+        totalsOut.avg_duration = totalsOut.nb_call
+            ? (totalsOut.total_duration / totalsOut.nb_call).toFixed(2)
+            : 0;
+
+        // Taux de réponse
+        totalsOut.answer_rate = totalsOut.nb_call
+            ? ((totalsOut.call_answer / totalsOut.nb_call) * 100).toFixed(2).replace('.', ',') + '%'
+            : '0,00%';
+
+        const totalRowOut = [
+            'Total pour '+ totalsOut.date,                         // Date vide
+            '',                    // Label
+            '',                         // IVRName vide
+            totalsOut.nb_call,
+            totalsOut.call_answer,
+            totalsOut.call_missed,
+            totalsOut.total_duration,
+            totalsOut.avg_duration,
+            '"' + totalsOut.answer_rate + '"'
+        ];
+
         const csvOut = [
-            "Date du jour, Intervalle 15 min, IVRName, Nombre d'appels recus, Appels Repondus, Appels Perdus, Duree totale d'appel, Duree moyenne d'appel, Taux de reponse",
-            ...rowsOut.map(r => r.join(','))
+            "Date du jour,Intervalle 15 min,IVRName,Nombre d'appels reçus,Appels Répondus,Appels Perdus,Durée totale d'appel,Durée moyenne d'appel,Taux de réponse",
+            ...rowsOut.map(r => r.join(',')),
+            totalRowOut.join(',') 
         ].join('\n');
 
-        const filePathOut = path.join(exportDir, `ALL_CALL_OUT_CDN_${know}.csv`);
-        fs.writeFileSync(filePathOut, csvOut);
+        const filePathOut = path.join(exportDir, `Fichier_final_SPM_-_TCD_OUT_(CDN_par_quart_d_heure)_${jj}_${mm}_${know}.csv`);
+        await fs.writeFileSync(filePathOut, csvOut);
 
         this.logger.log('Export ALL IN ONE terminé');
 
@@ -495,7 +587,7 @@ export class ExportsService {
             [
                 { filePath, fileName: `Fichier final SPM - Agent non compile Ringover ${jj}_${mm}.csv` },
                 { filePath: filePathIn, fileName: `Fichier final SPM - TCD (CDN_par_quart_d'heure) ${jj}_${mm}.csv` },
-                { filePath: filePathOut, fileName: `ALL_CALL_OUT_CDN_${know}.csv` }
+                { filePath: filePathOut, fileName: `Fichier final SPM - TCD OUT (CDN_par_quart_d_heure) ${jj}_${mm}.csv` }
             ],
             "Export GLOBAL",
             "Tous les tenants regroupés"

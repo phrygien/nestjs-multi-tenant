@@ -77,7 +77,7 @@ model EmpowerStats {
 model Export {
   id                      Int            @id @default(autoincrement())
   export_type             ExportTypeEnum
-  file_path               String         @db.VarChar(255)
+  file_path               String         @db.Text
   status                  StatusType     @default(failed)
   error_message           String?        @db.Text
   created_at              DateTime?      @default(now())
