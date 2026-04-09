@@ -146,8 +146,19 @@ export class CallService {
     total_errors: number;
     results: TenantImportResult[];
   }> {
-    // ÉTAPE 1 — Parser le CSV
-    const rows = await parse(buffer, {
+
+  // ÉTAPE 1 — Parser le CSV
+  let csv = buffer.toString();
+
+  // Nettoyage des quotes foireuses
+  csv = csv
+    .replace(/""\[/g, '[')
+    .replace(/\]""/g, ']')
+    .replace(/"{3,}/g, '"') // réduit les triples quotes
+    .replace(/"\[/g, '[')
+    .replace(/\]"/g, ']');
+
+    const rows = await parse(csv, {
       delimiter: ';',
       //columns: true,
       skip_empty_lines: true,

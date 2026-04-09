@@ -9,6 +9,7 @@ import { RingoverService } from './ringover/ringover.service';
 import { ExportsService } from './exports/exports.service';
 import { ExportsController } from './exports/exports.controller';
 import { EmailService } from './email/email.service';
+import { FtpService } from './ftp/ftp.service';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { EmailService } from './email/email.service';
     TenantModule,
     CallModule,
   ],
-  providers: [HistoriqueLectureService, RingoverService, ExportsService, EmailService],
+  providers: [HistoriqueLectureService, RingoverService, ExportsService, EmailService, FtpService],
   controllers: [ExportsController],
 })
 export class AppModule implements NestModule {

@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { MasterPrismaService } from '../prisma/master-prisma.service';
 import { EmailService } from '../email/email.service';
+import { FtpService } from '../ftp/ftp.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import dayjs from 'dayjs';
@@ -13,7 +14,8 @@ export class ExportsService {
     constructor( 
         private readonly tenantPrisma: TenantPrismaService,
         private readonly masterPrisma: MasterPrismaService,
-        private readonly email: EmailService
+        private readonly email: EmailService,
+        private readonly ftp: FtpService,
     ) {}
 
     // Auto export one by one
@@ -592,6 +594,10 @@ export class ExportsService {
             "Export GLOBAL",
             "Tous les tenants regroupés"
         );
+
+        await this.ftp.uploadFile(filePath, `export/ringover/agent/Fichier final SPM - Agent non compile Ringover ${jj}_${mm}.csv`);
+        await this.ftp.uploadFile(filePathIn, `export/ringover/cdn/Fichier final SPM - TCD (CDN_par_quart_d'heure) ${jj}_${mm}.csv`);
+
     }
 
     // start auto export all in One
