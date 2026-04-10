@@ -151,12 +151,12 @@ export class CallService {
   let csv = buffer.toString();
 
   // Nettoyage des quotes foireuses
-  csv = csv
-    .replace(/""\[/g, '[')
-    .replace(/\]""/g, ']')
-    .replace(/"{3,}/g, '"') // réduit les triples quotes
-    .replace(/"\[/g, '[')
-    .replace(/\]"/g, ']');
+  // csv = csv
+  //   .replace(/""\[/g, '[')
+  //   .replace(/\]""/g, ']')
+  //   .replace(/"{3,}/g, '"') // réduit les triples quotes
+  //   .replace(/"\[/g, '[')
+  //   .replace(/\]"/g, ']');
 
     const rows = await parse(csv, {
       delimiter: ';',
